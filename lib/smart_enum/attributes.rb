@@ -9,7 +9,7 @@
 # Example:
 #
 #   class Foo
-#     include SeAttributes
+#     include SmartEnum::Attributes
 #     attribute :id, Integer
 #     attribute :enabled, Boolean
 #     attribute :created_at, Time, coercer: ->(arg) { Time.parse(arg) }
@@ -22,77 +22,79 @@
 #   Foo.new(id: 1, enabled: true).enabled?
 #   # => true 
 #
-module SeAttributes
-  Attribute = Struct.new(:name, :types, :coercer)
-  Boolean = [TrueClass, FalseClass]
+class SmartEnum
+  module Attributes
+    Attribute = Struct.new(:name, :types, :coercer)
+    Boolean = [TrueClass, FalseClass]
 
-  def self.included(base)
-    base.extend(ClassMethods)
-  end
-
-  module ClassMethods
-    def attribute_set
-      @attribute_set ||= {}
+    def self.included(base)
+      base.extend(ClassMethods)
     end
 
-    # STI children should start with an attribute set cloned from their parent.
-    # Otherwise theirs will start blank.
-    def inherited(child_class)
-      child_class.instance_variable_set(:@attribute_set, self.attribute_set.dup)
-    end
-
-    def attribute(name, types, coercer: nil)
-      name = name.to_sym
-      types = Array.wrap(types)
-      attribute_set[name] = Attribute.new(name, types, coercer)
-      define_method(name) do
-        attributes[name]
+    module ClassMethods
+      def attribute_set
+        @attribute_set ||= {}
       end
-      if types == Boolean
-        alias_method "#{name}?".to_sym, name
+
+      # STI children should start with an attribute set cloned from their parent.
+      # Otherwise theirs will start blank.
+      def inherited(child_class)
+        child_class.instance_variable_set(:@attribute_set, self.attribute_set.dup)
+      end
+
+      def attribute(name, types, coercer: nil)
+        name = name.to_sym
+        types = Array.wrap(types)
+        attribute_set[name] = Attribute.new(name, types, coercer)
+        define_method(name) do
+          attributes[name]
+        end
+        if types == Boolean
+          alias_method "#{name}?".to_sym, name
+        end
       end
     end
-  end
 
-  def attributes
-    @attributes ||= {}
-  end
-
-  def initialize(opts={})
-    init_opts = opts.symbolize_keys
-    if self.class.attribute_set.empty?
-      fail "no attributes defined for #{self.class}"
+    def attributes
+      @attributes ||= {}
     end
-    self.class.attribute_set.each do |attr_name, attr_def|
-      if (arg=init_opts.delete(attr_name))
-        if attr_def.types.any?{|type| arg.is_a?(type) }
-          # No coercion necessary
-          attributes[attr_name] = arg
-        elsif attr_def.coercer
-          coerced_arg = attr_def.coercer.call(arg)
-          if !attr_def.types.any?{|type| coerced_arg.is_a?(type) }
-            # Coercer didn't give correct type
-            fail "coercer for #{attr_name} failed to coerce #{arg} to one of #{attr_def.types.inspect}.  Got #{coerced_arg}:#{coerced_arg.class} instead"
+
+    def initialize(opts={})
+      init_opts = opts.symbolize_keys
+      if self.class.attribute_set.empty?
+        fail "no attributes defined for #{self.class}"
+      end
+      self.class.attribute_set.each do |attr_name, attr_def|
+        if (arg=init_opts.delete(attr_name))
+          if attr_def.types.any?{|type| arg.is_a?(type) }
+            # No coercion necessary
+            attributes[attr_name] = arg
+          elsif attr_def.coercer
+            coerced_arg = attr_def.coercer.call(arg)
+            if !attr_def.types.any?{|type| coerced_arg.is_a?(type) }
+              # Coercer didn't give correct type
+              fail "coercer for #{attr_name} failed to coerce #{arg} to one of #{attr_def.types.inspect}.  Got #{coerced_arg}:#{coerced_arg.class} instead"
+            end
+            # Coercer worked
+            attributes[attr_name] = coerced_arg
+          else
+            # Wrong type, no coercer passed
+            fail "Attribute :#{attr_name} passed #{arg}:#{arg.class} in initializer, but needs #{attr_def.types.inspect} and has no coercer"
           end
-          # Coercer worked
-          attributes[attr_name] = coerced_arg
         else
-          # Wrong type, no coercer passed
-          fail "Attribute :#{attr_name} passed #{arg}:#{arg.class} in initializer, but needs #{attr_def.types.inspect} and has no coercer"
-        end
-      else
-        if attr_def.types == Boolean
-          # booleans should always be true or false, not nil
-          attributes[attr_name] = false
-        else
-          # Nothing provided for this attr in init opts, set to nil
-          # to make sure we always have a complete attributes hash.
-          attributes[attr_name] = nil
+          if attr_def.types == Boolean
+            # booleans should always be true or false, not nil
+            attributes[attr_name] = false
+          else
+            # Nothing provided for this attr in init opts, set to nil
+            # to make sure we always have a complete attributes hash.
+            attributes[attr_name] = nil
+          end
         end
       end
-    end
-    if init_opts.any?
-      fail "unrecognized options: #{init_opts.inspect}"
+      if init_opts.any?
+        fail "unrecognized options: #{init_opts.inspect}"
+      end
     end
   end
 end
