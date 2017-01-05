@@ -19,8 +19,11 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # Temporary: ideally AR will be optional
+  spec.add_dependency "activesupport"
+  # TODO: move to a development dependency, to make this optional for consumers
   spec.add_dependency "activerecord", "4.2.6"
+  # TODO: move to a development dependency, to make this optional for consumers
+  spec.add_dependency "money"
 
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"

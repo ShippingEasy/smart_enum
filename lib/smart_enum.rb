@@ -1,6 +1,7 @@
 require "smart_enum/version"
 require "smart_enum/attributes"
 
+require "active_support/all" # TODO: only require parts we need
 require "active_record" # Temporary: should become opt-in
 
 # A class used to build in-memory graphs of "lookup" objects that are
@@ -335,6 +336,8 @@ class SmartEnum
   # Simple emulation of the monetize macro.
   INTEGER = [Integer]
   module MonetizeInterop
+    require 'money'
+
     CENTS_SUFFIX = /_cents\z/.freeze
     # Note: this ignores the currency column since we only ever monetize things
     # as USD.  If that changes this should start reading the currency column.
@@ -354,16 +357,24 @@ class SmartEnum
 
       money_attribute = as || cents_field_name.to_s.sub(CENTS_SUFFIX, '')
 
-      should_memoize = !Rails.env.test?
-
       define_method(money_attribute) do
-        if should_memoize
+        if MonetizeInterop.memoize_method_value
           @money_cache ||= {}
           @money_cache[money_attribute] ||= Money.new(public_send(cents_field_name))
         else
           Money.new(public_send(cents_field_name))
         end
       end
+    end
+
+    @memoize_method_value = true
+
+    def self.memoize_method_value
+      @memoize_method_value
+    end
+
+    def self.disable_memoization!
+      @memoize_method_value = false
     end
   end
 
