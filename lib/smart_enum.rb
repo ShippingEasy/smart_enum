@@ -1,3 +1,8 @@
+require "smart_enum/version"
+require "smart_enum/attributes"
+
+require "active_record" # Temporary: should become opt-in
+
 # A class used to build in-memory graphs of "lookup" objects that are
 # long-lived and can associate among themselves or ActiveRecord instances.
 #
@@ -27,7 +32,7 @@
 #
 class SmartEnum
   include ActiveModel::Serialization
-  include SeAttributes
+  include SmartEnum::Attributes
 
   def self.enum_values
     @enum_values ||= {}

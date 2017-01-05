@@ -1,3 +1,3 @@
-module SmartEnum
+class SmartEnum
   VERSION = "0.1.0"
 end
