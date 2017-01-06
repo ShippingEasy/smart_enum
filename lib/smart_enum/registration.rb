@@ -1,12 +1,7 @@
+require 'yaml'
 # Methods for registering in-memory values
 class SmartEnum
   module Registration
-    class EnumLocked < StandardError
-      def initialize(klass)
-        super("#{klass} has been locked and can not be written to")
-      end
-    end
-
     def lock_enum!
       @enum_locked = true
       enum_values.freeze
@@ -17,7 +12,16 @@ class SmartEnum
     end
 
     def register_values_from_file!
-      values = YAML.load_file(Rails.root.join("data/lookups/#{self.name.tableize}.yml"))
+      unless SmartEnum::Registration.data_root
+        raise "Must set SmartEnum::Registration.data_root before using `register_values_from_file!`"
+      end
+      unless self.name
+        raise "Cannot infer data file for anonymous class"
+      end
+
+      filename = "#{self.name.tableize}.yml"
+      file_path = File.join(SmartEnum::Registration.data_root, filename)
+      values = YAML.load_file(file_path)
       register_values(values, self, detect_sti_types: true)
     end
 
@@ -60,13 +64,18 @@ class SmartEnum
       enum_values[id] = instance
     end
 
-    # in config/initializer/smart_enum.rb:
-    # SmartEnum.lock_all!
-    def lock_all!
-      # FIXME: This wont work, because lazy loaded classes aren't loaded yet
-      subclasses.each do |subclass|
-        subclass.lock_enum!
-      end
+    def self.data_root
+      @data_root
+    end
+
+    def self.data_root=(val)
+      @data_root = val
+    end
+  end
+
+  class EnumLocked < StandardError
+    def initialize(klass)
+      super("#{klass} has been locked and can not be written to")
     end
   end
 end
