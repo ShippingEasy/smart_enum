@@ -24,6 +24,12 @@ GEM
       tzinfo (~> 1.1)
     arel (6.0.3)
     builder (3.2.2)
+    byebug (3.5.1)
+      columnize (~> 0.8)
+      debugger-linecache (~> 1.2)
+      slop (~> 3.6)
+    columnize (0.9.0)
+    debugger-linecache (1.2.0)
     diff-lcs (1.2.5)
     i18n (0.7.0)
     json (1.8.3)
@@ -44,6 +50,7 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.5.0)
     rspec-support (3.5.0)
+    slop (3.6.0)
     thread_safe (0.3.5)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
@@ -53,6 +60,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 1.11)
+  byebug
   rake (~> 10.0)
   rspec (~> 3.0)
   smart_enum!
