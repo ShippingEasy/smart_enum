@@ -433,6 +433,19 @@ RSpec.describe SmartEnum do
         expect(refl.foreign_key).to eq(:bar_id)
         expect(refl.association_class).to eq(Bar)
       end
+
+      it 'can refer to a class that has not yet been defined' do
+        Foo.attribute :created_later_id, Integer
+        Foo.belongs_to_enum 'created_later'
+        stub_const("CreatedLater", Class.new(SmartEnum) { attribute :id, Integer} )
+
+        CreatedLater.register_values([{id:11}, {id: 22}])
+        Foo.register_values([{id:1, created_later_id: 11}])
+
+        foo = Foo.find(1)
+
+        expect(foo.created_later).to be_an_instance_of(CreatedLater)
+      end
     end
 
     describe 'has_many_enums' do
@@ -483,6 +496,201 @@ RSpec.describe SmartEnum do
                              {id: 2, bar_id: 11}])
         Bar.register_values([{id: 11}])
         expect(Bar.find(11).my_foos.size).to eq(2)
+      end
+
+      it 'can refer to a class that has not yet been defined' do
+        Foo.has_many_enums 'created_laters'
+        stub_const("CreatedLater", Class.new(SmartEnum) {
+          attribute :id, Integer
+          attribute :foo_id, Integer
+        })
+
+        Foo.register_values([{id:1}])
+        CreatedLater.register_values([{id:11, foo_id: 1}, {id: 22, foo_id: 1}])
+
+        foo = Foo.find(1)
+
+        expect(foo.created_laters.length).to eq(2)
+      end
+    end
+
+    describe 'has_many_enums through' do
+      describe 'generated association method' do
+        before do
+        end
+
+        it 'locates associated instances (has_many -> has_many)' do
+          Baz.attribute :foo_id, Integer
+          Baz.belongs_to_enum :foo
+          Bar.attribute :baz_id, Integer
+          Bar.belongs_to_enum :baz
+          Baz.has_many_enums :bars
+          Foo.has_many_enums :bazs
+          Foo.has_many_enums :bars, through: :bazs
+
+          Foo.register_values([{id: 1}, {id: 2}])
+          Baz.register_values([
+            {id:1, foo_id: 1},
+            {id:2, foo_id: 1},
+            {id:3, foo_id: 2},
+            {id:4, foo_id: 2},
+            {id:5, foo_id: 2},
+            {id:6, foo_id: 3},
+          ])
+          Bar.register_values([
+            {id:10, baz_id: 1},
+            {id:11, baz_id: 1},
+            {id:20, baz_id: 2},
+            {id:21, baz_id: 2},
+            {id:22, baz_id: 2},
+            {id:30, baz_id: 3},
+            {id:31, baz_id: 3},
+            {id:60, baz_id: 6},
+          ])
+
+          foo = Foo.find(1)
+          bars = foo.bars
+
+          expect(bars).to all(be_a(Bar))
+          expect(bars.map(&:id)).to match_array([10, 11, 20, 21, 22])
+
+          bars = Foo.find(2).bars
+          expect(bars.map(&:id)).to match_array([30, 31])
+        end
+
+        it 'locates associated instances (has_many -> belongs_to) using source' do
+          # baz is the join model between foo and bar
+          Baz.attribute :foo_id, Integer
+          Baz.attribute :bar_id, Integer
+          Baz.belongs_to_enum :foo
+          Baz.belongs_to_enum :bar
+          Foo.has_many_enums :bazs
+          Foo.has_many_enums :bars, through: :bazs, source: :bar
+
+          Foo.register_values([{id: 1}, {id: 2}])
+          Bar.register_values([{id: 1}, {id: 2}, {id: 3}, {id: 4}])
+
+          Baz.register_values([
+            {id:1, foo_id: 1, bar_id: 1},
+            {id:2, foo_id: 1, bar_id: 4},
+            {id:3, foo_id: 2, bar_id: 1},
+            {id:4, foo_id: 2, bar_id: 2},
+            {id:5, foo_id: 2, bar_id: 3},
+            {id:6, foo_id: 3, bar_id: 3},
+          ])
+
+          foo = Foo.find(1)
+          bars = foo.bars
+
+          expect(bars).to all(be_a(Bar))
+          expect(bars.map(&:id)).to match_array([1,4])
+
+          bars = Foo.find(2).bars
+          expect(bars.map(&:id)).to match_array([1,2,3])
+        end
+      end
+    end
+
+    describe 'has_one_enum' do
+      describe 'generated association method' do
+        before do
+          Foo.attribute :bar_id, Integer
+          Bar.has_one_enum :foo
+        end
+
+        it 'locates associated instance' do
+          Bar.register_values([{id:11}, {id: 22}])
+          Foo.register_values([{id:1, bar_id: 11}, {id: 2, bar_id: 12}, {id: 3, bar_id: 22}])
+          bar = Bar.find(11)
+          foo = bar.foo
+          expect(foo.id).to eq(1)
+          expect(foo).to be_a(Foo)
+
+          expect(Bar.find(22).foo.id).to eq(3)
+        end
+      end
+
+      it 'supports overriding the inferred class_name' do
+        Foo.attribute :bar_id, Integer
+        Bar.has_one_enum "baz", class_name: "Foo"
+        Foo.register_values([{id: 1, bar_id: 11}])
+        Bar.register_values([{id: 11}])
+        Baz.register_values([{id: 11}])
+        bar = Bar.find(11)
+        expect(bar.baz).to be_a(Foo)
+        expect(bar.baz.id).to eq(1)
+      end
+
+      it 'supports overriding the inferred foreign_key' do
+        Foo.attribute :bar_id, Integer
+        Foo.attribute :alternate_bar_id, Integer
+        Bar.has_one_enum "foo", foreign_key: 'alternate_bar_id'
+        Foo.register_values([{id: 1, bar_id: 22, alternate_bar_id: 11},
+                             {id: 2, bar_id: 11, alternate_bar_id: 22}])
+        Bar.register_values([{id: 11},{id: 22}])
+        expect(Bar.find(11).foo.id).to eq(1)
+        expect(Bar.find(22).foo.id).to eq(2)
+      end
+
+      it 'can refer to a class that has not yet been defined' do
+        Foo.has_one_enum 'created_later'
+        stub_const("CreatedLater", Class.new(SmartEnum) {
+          attribute :id, Integer
+          attribute :foo_id, Integer
+        })
+
+        Foo.register_values([{id:1}])
+        CreatedLater.register_values([{id:11, foo_id: 1}, {id: 22, foo_id: 2}])
+
+        foo = Foo.find(1)
+
+        expect(foo.created_later.id).to eq(11)
+      end
+    end
+
+    describe 'has_one_enum through' do
+      describe 'generated association method' do
+        it 'locates associated instance' do
+          Bar.attribute :foo_id, Integer
+          Bar.attribute :baz_id, Integer
+          Bar.belongs_to_enum :foo
+          Bar.belongs_to_enum :baz
+          Foo.has_one_enum :bar
+          Foo.has_one_enum :baz, through: :bar
+
+          Foo.register_values([{id:1}, {id: 2}, {id: 3}])
+          Baz.register_values([{id: 31},{id: 32}])
+          Bar.register_values([{id:11, foo_id: 1, baz_id: 31}, {id: 22, foo_id: 2, baz_id: 32}])
+
+          foo = Foo.find(1)
+          expect(foo.baz).to be_a(Baz)
+          expect(foo.baz.id).to eq(31)
+
+          foo = Foo.find(2)
+          expect(foo.baz).to be_a(Baz)
+          expect(foo.baz.id).to eq(32)
+        end
+      end
+
+      it 'supports overriding the source' do
+          Bar.attribute :foo_id, Integer
+          Bar.attribute :baz_id, Integer
+          Bar.belongs_to_enum :foo
+          Bar.belongs_to_enum :secret, class_name: "Baz", foreign_key: :baz_id
+          Foo.has_one_enum :bar
+          Foo.has_one_enum :baz, through: :bar, source: :secret
+
+          Foo.register_values([{id:1}, {id: 2}, {id: 3}])
+          Baz.register_values([{id: 31},{id: 32}])
+          Bar.register_values([{id:11, foo_id: 1, baz_id: 31}, {id: 22, foo_id: 2, baz_id: 32}])
+
+          foo = Foo.find(1)
+          expect(foo.baz).to be_a(Baz)
+          expect(foo.baz.id).to eq(31)
+
+          foo = Foo.find(2)
+          expect(foo.baz).to be_a(Baz)
+          expect(foo.baz.id).to eq(32)
       end
     end
   end
