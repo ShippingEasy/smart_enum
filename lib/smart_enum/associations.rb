@@ -1,10 +1,7 @@
 # Macros for registring associations with other SmartEnum models
 class SmartEnum
   module Associations
-    def has_many_enums(association_name, class_name: nil, as: nil, foreign_key: nil, through: nil, source: nil, **opts)
-      if opts.any?
-        fail "unsupported options: #{opts.keys.join(',')}"
-      end
+    def has_many_enums(association_name, class_name: nil, as: nil, foreign_key: nil, through: nil, source: nil)
       association_name = association_name.to_sym
       if through
         return has_many_enums_through(association_name, through, source: source)
@@ -18,10 +15,7 @@ class SmartEnum
       end
     end
 
-    def has_one_enum(association_name, class_name: nil, foreign_key: nil, through: nil, source: nil, **opts)
-      if opts.any?
-        fail "unsupported options: #{opts.keys.join(',')}"
-      end
+    def has_one_enum(association_name, class_name: nil, foreign_key: nil, through: nil, source: nil)
       if through
         return has_one_enum_through(association_name, through, source: source)
       end
@@ -43,20 +37,6 @@ class SmartEnum
       end
     end
 
-    class HasManyThrough
-      attr_reader :association_name, :through_association, :source_option
-
-      def initialize(association_name, through_association, source_option)
-        @association_name = association_name
-        @through_association = through_association.to_sym
-        @source_option = source_option
-      end
-
-      def association_method
-        @association_method ||= (source_option || association_name)
-      end
-    end
-
     def has_many_enums_through(association_name, through_association, source: nil)
       association = enum_associations[association_name] =
         HasManyThrough.new(association_name, through_association, source)
@@ -66,11 +46,7 @@ class SmartEnum
       end
     end
 
-    def belongs_to_enum(association_name, class_name: nil, foreign_key: nil, **opts)
-      if opts.any?
-        fail "unsupported options: #{opts.keys.join(',')}"
-      end
-
+    def belongs_to_enum(association_name, class_name: nil, foreign_key: nil)
       association_name = association_name.to_sym
       association = enum_associations[association_name] =
         BelongsTo.new(association_name, class_name, foreign_key)
@@ -159,6 +135,20 @@ class SmartEnum
         @association_class ||= class_name.constantize.tap{|klass|
              ::SmartEnum::Associations.__assert_enum(klass, :has_many_enums)
            }
+      end
+    end
+
+    class HasManyThrough
+      attr_reader :association_name, :through_association, :source_option
+
+      def initialize(association_name, through_association, source_option)
+        @association_name = association_name
+        @through_association = through_association.to_sym
+        @source_option = source_option
+      end
+
+      def association_method
+        @association_method ||= (source_option || association_name)
       end
     end
 

@@ -423,7 +423,7 @@ RSpec.describe SmartEnum do
       it 'fails on unsupported arguments' do
         expect {
           Foo.belongs_to_enum "bar", some_unknown_option: true
-        }.to raise_error("unsupported options: some_unknown_option")
+        }.to raise_error(ArgumentError)
       end
 
       it 'registers a reflection' do
