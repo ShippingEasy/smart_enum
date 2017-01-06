@@ -2,7 +2,6 @@ require "smart_enum/version"
 require "smart_enum/active_record_interop"
 require "smart_enum/associations"
 require "smart_enum/attributes"
-require "smart_enum/monetize_interop"
 require "smart_enum/querying"
 require "smart_enum/registration"
 
@@ -52,5 +51,4 @@ class SmartEnum
   extend Associations
   extend Querying
   include ActiveRecordInterop
-  extend MonetizeInterop
 end

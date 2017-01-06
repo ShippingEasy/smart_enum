@@ -1,3 +1,5 @@
+require 'bigdecimal'
+
 class SmartEnum
   module Querying
     def where(uncast_attrs)
