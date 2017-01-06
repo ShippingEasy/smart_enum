@@ -50,7 +50,7 @@ class SmartEnum
       end
     end
 
-    def belongs_to_enum(association_name, class_name: nil, foreign_key: nil, read_only: true, **opts)
+    def belongs_to_enum(association_name, class_name: nil, foreign_key: nil, **opts)
       if opts.any?
         fail "unsupported options: #{opts.keys.join(',')}"
       end
@@ -65,9 +65,20 @@ class SmartEnum
         association_class.find_by(id: self.public_send(foreign_key))
       end
 
-      unless read_only
+      fk_writer_name = "#{foreign_key}=".to_sym
+
+      generate_writer = instance_methods.include?(fk_writer_name) || (
+        # ActiveRecord may not have generated the FK writer method yet.
+        # We'll assume that it will get a writer if it has a column with the same name.
+        defined?(ActiveRecord::Base) &&
+        self <= ActiveRecord::Base &&
+        self.respond_to?(:column_names) &&
+        self.column_names.include?(foreign_key.to_s)
+      )
+
+      if generate_writer
         define_method("#{association_name}=") do |value|
-          self.public_send("#{foreign_key}=", value.try(:id))
+          self.public_send(fk_writer_name, value.try(:id))
         end
       end
     end

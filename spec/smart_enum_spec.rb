@@ -334,7 +334,7 @@ RSpec.describe SmartEnum do
     end
 
     describe 'belongs_to_enum' do
-      describe 'generated association method' do
+      describe 'generated reader method' do
         before do
           Foo.attribute :bar_id, Integer
           Foo.belongs_to_enum "bar"
@@ -362,6 +362,38 @@ RSpec.describe SmartEnum do
           foo = Foo.find(1)
           expect(foo.bar).to eq(nil)
         end
+      end
+
+      describe 'generated writer method' do
+        context 'when the foreign_key attribute is writable' do
+          before do
+            non_enum_class = Class.new do
+              extend SmartEnum::Associations
+              attr_accessor :id, :bar_id
+              belongs_to_enum "bar"
+            end
+            stub_const("NonEnumFoo", non_enum_class)
+          end
+
+          it 'includes an association writer to set the foreign_key' do
+            Bar.register_values([{id:11}, {id: 22}])
+
+            instance = NonEnumFoo.new
+            expect(instance).to respond_to(:bar=)
+
+            bar = Bar.find(11)
+            instance.bar = bar
+            expect(instance.bar).to eq(bar)
+            expect(instance.bar_id).to eq(bar.id)
+          end
+        end
+
+        context 'when the foreign_key attribute is not writable' do
+          it 'does not generate a writer method' do
+            expect(Foo.new).to_not respond_to(:bar=)
+          end
+        end
+
       end
 
       it 'supports overriding the inferred class_name' do
