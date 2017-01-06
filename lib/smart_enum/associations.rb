@@ -8,7 +8,7 @@ class SmartEnum
       end
 
       association = enum_associations[association_name] =
-        HasMany.new(self, association_name, class_name, as, foreign_key)
+        HasAssociation.new(self, association_name, class_name: class_name, as: as, foreign_key: foreign_key)
 
       define_method(association.generated_method_name) do
         association.association_class.where(association.foreign_key => self.id)
@@ -22,7 +22,7 @@ class SmartEnum
 
       association_name = association_name.to_sym
       association = enum_associations[association_name] =
-        HasOne.new(self, association_name, class_name, foreign_key)
+        HasAssociation.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
 
       define_method(association_name) do
         association.association_class.find_by(association.foreign_key => self.id)
@@ -31,7 +31,7 @@ class SmartEnum
 
     def has_one_enum_through(association_name, through_association, source: nil)
       association = enum_associations[association_name] =
-        HasOneThrough.new(association_name, through_association, source)
+        ThroughAssociation.new(association_name, through_association, source: source)
       define_method(association_name) do
         public_send(association.through_association).try(association.association_method)
       end
@@ -39,7 +39,7 @@ class SmartEnum
 
     def has_many_enums_through(association_name, through_association, source: nil)
       association = enum_associations[association_name] =
-        HasManyThrough.new(association_name, through_association, source)
+        ThroughAssociation.new(association_name, through_association, source: source)
       define_method(association_name) do
         public_send(association.through_association).compact.
           flat_map(&association.association_method).compact.tap(&:freeze)
@@ -49,7 +49,7 @@ class SmartEnum
     def belongs_to_enum(association_name, class_name: nil, foreign_key: nil)
       association_name = association_name.to_sym
       association = enum_associations[association_name] =
-        BelongsTo.new(association_name, class_name, foreign_key)
+        Association.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
 
       define_method(association_name) do
         id_to_find = self.public_send(association.foreign_key)
@@ -74,9 +74,9 @@ class SmartEnum
       end
     end
 
-    def self.__assert_enum(klass, macro_name)
+    def self.__assert_enum(klass)
       unless klass <= SmartEnum
-        fail "#{macro_name} should only be used to associate against SmartEnum descendants, #{klass} isn't one"
+        fail "enum associations can only associate to classes which descend from SmartEnum. #{klass} does not."
       end
     end
 
@@ -84,13 +84,15 @@ class SmartEnum
       @enum_associations ||= {}
     end
 
-    class BelongsTo
-      attr_reader :association_name, :class_name_option, :foreign_key_option
+    class Association
+      attr_reader :owner_class, :association_name, :class_name_option, :as_option, :foreign_key_option
 
-      def initialize(association_name, class_name_option, foreign_key_option)
+      def initialize(owner_class, association_name, class_name: nil, as: nil, foreign_key: nil)
+        @owner_class = owner_class
         @association_name = association_name.to_sym
-        @class_name_option = class_name_option
-        @foreign_key_option = foreign_key_option
+        @class_name_option = class_name
+        @as_option = as
+        @foreign_key_option = foreign_key
       end
 
       def class_name
@@ -101,89 +103,38 @@ class SmartEnum
         @foreign_key ||= (foreign_key_option || association_name.to_s.foreign_key).to_sym
       end
 
-      def association_class
-        @association_class ||= class_name.constantize.tap{|klass|
-          ::SmartEnum::Associations.__assert_enum(klass, :belongs_to_enum)
-        }
-      end
-    end
-
-    class HasMany
-      attr_reader :owner_class, :association_name, :class_name_option, :as_option, :foreign_key_option
-
-      def initialize(owner_class, association_name, class_name_option, as_option, foreign_key_option)
-        @owner_class = owner_class
-        @association_name = association_name.to_sym
-        @class_name_option = class_name_option
-        @as_option = as_option
-        @foreign_key_option = foreign_key_option
-      end
-
-      def class_name
-        @class_name ||= (class_name_option || association_name.to_s.classify).to_s
-      end
-
-      def foreign_key
-        @foreign_key ||= (foreign_key_option || owner_class.name.foreign_key).to_sym
-      end
-
       def generated_method_name
         @generated_method_name ||= (as_option || association_name).to_sym
       end
 
       def association_class
         @association_class ||= class_name.constantize.tap{|klass|
-             ::SmartEnum::Associations.__assert_enum(klass, :has_many_enums)
+             ::SmartEnum::Associations.__assert_enum(klass)
            }
       end
     end
 
-    class HasManyThrough
-      attr_reader :association_name, :through_association, :source_option
-
-      def initialize(association_name, through_association, source_option)
-        @association_name = association_name
-        @through_association = through_association.to_sym
-        @source_option = source_option
-      end
-
-      def association_method
-        @association_method ||= (source_option || association_name)
-      end
-    end
-
-    class HasOne
-      attr_reader :owner_class, :association_name, :class_name_option, :foreign_key_option
-
-      def initialize(owner_class, association_name, class_name_option, foreign_key_option)
-        @owner_class = owner_class
-        @association_name = association_name.to_sym
-        @class_name_option = class_name_option
-        @foreign_key_option = foreign_key_option
-      end
-
+    class HasAssociation < Association
       def foreign_key
-        @foreign_key ||= (foreign_key_option || owner_class.name.foreign_key).to_sym
-      end
-
-      def class_name
-        @class_name ||= (class_name_option || association_name.to_s.classify).to_s
-      end
-
-      def association_class
-        @association_class ||= class_name.constantize.tap{|klass|
-          ::SmartEnum::Associations.__assert_enum(klass, :has_one_enum)
-        }
+        @foreign_key ||=
+          begin
+            return foreign_key_option.to_sym if foreign_key_option
+            if owner_class.name
+              owner_class.name.foreign_key.to_sym
+            else
+              raise "You must specify the foreign_key option when using a 'has_*' association on an anoymous class"
+            end
+          end
       end
     end
 
-    class HasOneThrough
+    class ThroughAssociation
       attr_reader :association_name, :through_association, :source_option
 
-      def initialize(association_name, through_association, source_option)
+      def initialize(association_name, through_association, source: nil)
         @association_name = association_name
         @through_association = through_association.to_sym
-        @source_option = source_option
+        @source_option = source
       end
 
       def association_method
