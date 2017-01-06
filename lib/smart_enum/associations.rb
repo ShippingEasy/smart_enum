@@ -1,6 +1,6 @@
 # Macros for registring associations with other SmartEnum models
 class SmartEnum
-  module Association
+  module Associations
     def has_many_enums(association_name, class_name: nil, as: nil, foreign_key: nil, through: nil, source: nil, **opts)
       if opts.any?
         fail "unsupported options: #{opts.keys.join(',')}"
@@ -14,7 +14,7 @@ class SmartEnum
         foreign_key = foreign_key.to_sym
         class_name ||= association_name.to_s.classify
         association_class = class_name.constantize
-        ::SmartEnum::Association.__assert_enum(association_class, :has_many_enums)
+        ::SmartEnum::Associations.__assert_enum(association_class, :has_many_enums)
         association_class.where({foreign_key => self.id})
       end
     end
@@ -31,7 +31,7 @@ class SmartEnum
         foreign_key = foreign_key.to_sym
         class_name ||= association_name.to_s.classify
         association_class = class_name.constantize
-        ::SmartEnum::Association.__assert_enum(association_class, :has_one_enum)
+        ::SmartEnum::Associations.__assert_enum(association_class, :has_one_enum)
         association_class.find_by({foreign_key => self.id})
       end
     end
@@ -55,11 +55,10 @@ class SmartEnum
         fail "unsupported options: #{opts.keys.join(',')}"
       end
       foreign_key ||= association_name.to_s.foreign_key
-      foreign_key = foreign_key.to_sym
       class_name ||= association_name.to_s.classify
       association_class = class_name.constantize
-      ::SmartEnum::Association.__assert_enum(association_class, :belongs_to_enum)
-      self.enum_associations[association_name] =
+      ::SmartEnum::Associations.__assert_enum(association_class, :belongs_to_enum)
+      self.enum_associations[association_name.to_sym] =
         BelongsToAssociation.new(association_name, foreign_key, association_class)
 
       define_method(association_name) do
@@ -83,6 +82,14 @@ class SmartEnum
       @enum_associations ||= {}
     end
 
-    BelongsToAssociation = Struct.new(:association_name, :foreign_key, :association_class)
+    class BelongsToAssociation
+      attr_accessor :association_name, :foreign_key, :association_class
+
+      def initialize(association_name, foreign_key, association_class)
+        @association_name = association_name.to_sym
+        @foreign_key = foreign_key.to_sym
+        @association_class = association_class
+      end
+    end
   end
 end
