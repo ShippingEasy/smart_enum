@@ -41,7 +41,7 @@ class SmartEnum
       association = enum_associations[association_name] =
         ThroughAssociation.new(association_name, through_association, source: source)
       define_method(association_name) do
-        public_send(association.through_association).compact.
+        public_send(association.through_association).
           flat_map(&association.association_method).compact.tap(&:freeze)
       end
     end
