@@ -333,11 +333,11 @@ RSpec.describe SmartEnum do
       stub_const("Baz", Class.new(SmartEnum) { attribute :id, Integer} )
     end
 
-    describe 'belongs_to' do
+    describe 'belongs_to_enum' do
       describe 'generated association method' do
         before do
           Foo.attribute :bar_id, Integer
-          Foo.belongs_to "bar"
+          Foo.belongs_to_enum "bar"
         end
 
         it 'locates associated instances' do
@@ -366,7 +366,7 @@ RSpec.describe SmartEnum do
 
       it 'supports overriding the inferred class_name' do
         Foo.attribute :bar_id, Integer
-        Foo.belongs_to "bar", class_name: "Baz"
+        Foo.belongs_to_enum "bar", class_name: "Baz"
         Foo.register_values([{id: 1, bar_id: 11}])
         Bar.register_values([{id: 11}])
         Baz.register_values([{id: 11}])
@@ -379,7 +379,7 @@ RSpec.describe SmartEnum do
       it 'supports overriding the inferred foreign_key' do
         Foo.attribute :bar_id, Integer
         Foo.attribute :alternate_bar_id, Integer
-        Foo.belongs_to "bar", foreign_key: "alternate_bar_id"
+        Foo.belongs_to_enum "bar", foreign_key: "alternate_bar_id"
         Foo.register_values([{id: 1, bar_id: 11, alternate_bar_id: 22}])
         Bar.register_values([{id: 11}, {id: 22}])
         foo = Foo.find(1)
@@ -390,24 +390,24 @@ RSpec.describe SmartEnum do
 
       it 'fails on unsupported arguments' do
         expect {
-          Foo.belongs_to "bar", some_unknown_option: true
+          Foo.belongs_to_enum "bar", some_unknown_option: true
         }.to raise_error("unsupported options: some_unknown_option")
       end
 
       it 'registers a reflection' do
-        Foo.belongs_to 'bar'
-        refl = Foo.reflections[:bar]
+        Foo.belongs_to_enum 'bar'
+        refl = Foo.enum_associations[:bar]
         expect(refl.association_name).to eq(:bar)
         expect(refl.foreign_key).to eq(:bar_id)
         expect(refl.association_class).to eq(Bar)
       end
     end
 
-    describe 'has_many' do
+    describe 'has_many_enums' do
       describe 'generated association method' do
         before do
           Foo.attribute :bar_id, Integer
-          Bar.has_many :foos
+          Bar.has_many_enums :foos
         end
 
         it 'locates associated instances' do
@@ -424,7 +424,7 @@ RSpec.describe SmartEnum do
 
       it 'supports overriding the inferred class_name' do
         Foo.attribute :bar_id, Integer
-        Bar.has_many "bazs", class_name: "Foo"
+        Bar.has_many_enums "bazs", class_name: "Foo"
         Foo.register_values([{id: 1, bar_id: 11}])
         Bar.register_values([{id: 11}])
         Baz.register_values([{id: 11}])
@@ -436,7 +436,7 @@ RSpec.describe SmartEnum do
       it 'supports overriding the inferred foreign_key' do
         Foo.attribute :bar_id, Integer
         Foo.attribute :alternate_bar_id, Integer
-        Bar.has_many "foos", foreign_key: 'alternate_bar_id'
+        Bar.has_many_enums "foos", foreign_key: 'alternate_bar_id'
         Foo.register_values([{id: 1, bar_id: 11, alternate_bar_id: 22},
                              {id: 2, bar_id: 11, alternate_bar_id: 22}])
         Bar.register_values([{id: 11},{id: 22}])
@@ -446,7 +446,7 @@ RSpec.describe SmartEnum do
 
       it 'supports the :as option to override the association method name' do
         Foo.attribute :bar_id, Integer
-        Bar.has_many "foos", as: 'my_foos'
+        Bar.has_many_enums "foos", as: 'my_foos'
         Foo.register_values([{id: 1, bar_id: 11},
                              {id: 2, bar_id: 11}])
         Bar.register_values([{id: 11}])
