@@ -11,7 +11,9 @@ class SmartEnum
         HasAssociation.new(self, association_name, class_name: class_name, as: as, foreign_key: foreign_key)
 
       define_method(association.generated_method_name) do
-        association.association_class.where(association.foreign_key => self.id)
+        association.association_class.values.select{|instance|
+          instance.attributes[association.foreign_key] == self.id
+        }
       end
     end
 
@@ -25,7 +27,9 @@ class SmartEnum
         HasAssociation.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
 
       define_method(association_name) do
-        association.association_class.find_by(association.foreign_key => self.id)
+        association.association_class.values.detect{|instance|
+          instance.attributes[association.foreign_key] == self.id
+        }
       end
     end
 
@@ -53,7 +57,7 @@ class SmartEnum
 
       define_method(association_name) do
         id_to_find = self.public_send(association.foreign_key)
-        association.association_class.find_by(id: id_to_find)
+        association.association_class[id_to_find]
       end
 
       fk_writer_name = "#{association.foreign_key}=".to_sym

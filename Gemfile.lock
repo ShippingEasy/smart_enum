@@ -2,9 +2,7 @@ PATH
   remote: .
   specs:
     smart_enum (0.1.0)
-      activerecord (= 4.2.6)
       activesupport
-      money
 
 GEM
   remote: https://rubygems.org/
@@ -59,8 +57,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord (= 4.2.6)
   bundler (~> 1.11)
   byebug
+  money
   rake (~> 10.0)
   rspec (~> 3.0)
   smart_enum!

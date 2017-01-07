@@ -1,11 +1,8 @@
 require "smart_enum/version"
-require "smart_enum/active_record_interop"
 require "smart_enum/associations"
 require "smart_enum/attributes"
-require "smart_enum/querying"
 
 require "active_support/all" # TODO: only require parts we need
-require "active_record" # Temporary: should become opt-in
 
 # A class used to build in-memory graphs of "lookup" objects that are
 # long-lived and can associate among themselves or ActiveRecord instances.
@@ -35,7 +32,6 @@ require "active_record" # Temporary: should become opt-in
 #   # => [#<Customer id: 13, foo_id: 1>, ...]
 #
 class SmartEnum
-  include ActiveModel::Serialization
   include SmartEnum::Attributes
 
   def self.[](id)
@@ -59,8 +55,6 @@ class SmartEnum
   end
 
   extend Associations
-  extend Querying
-  include ActiveRecordInterop
 
   def self.lock_enum!
     return if @enum_locked

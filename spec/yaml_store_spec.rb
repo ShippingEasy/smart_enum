@@ -16,9 +16,9 @@ RSpec.describe SmartEnum::YamlStore do
       Foo.register_values_from_file!
 
       expect(Foo.values.length).to eq(3)
-      expect(Foo.find(1).name).to eq("first")
-      expect(Foo.find(2).name).to eq("second")
-      expect(Foo.find(3).name).to eq("third")
+      expect(Foo[1].name).to eq("first")
+      expect(Foo[2].name).to eq("second")
+      expect(Foo[3].name).to eq("third")
     end
 
     it 'locks the enum' do

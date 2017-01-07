@@ -20,12 +20,12 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activesupport"
-  # TODO: move to a development dependency, to make this optional for consumers
-  spec.add_dependency "activerecord", "4.2.6"
-  # TODO: move to a development dependency, to make this optional for consumers
-  spec.add_dependency "money"
 
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
+
+  # needed to run test suite for optional features, but consumers don't need it
+  spec.add_development_dependency "activerecord", "4.2.6"
+  spec.add_development_dependency "money"
 end

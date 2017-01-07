@@ -53,9 +53,9 @@ RSpec.describe SmartEnum do
         model.register_values([{id: 77}, {'id'=> 88}]) # test symbolization while we're at it
         expect(model.values.map(&:id)).to match_array([77,88])
         expect(model.enum_locked?).to eq(true)
-        expect(model.find(77)).to be_a(model)
-        expect(model.find(88)).to be_a(model)
-        expect{model.find(99)}.to raise_error(ActiveRecord::RecordNotFound)
+        expect(model[77]).to be_a(model)
+        expect(model[88]).to be_a(model)
+        expect(model[99]).to be_nil
       end
 
       it 'prevents dupe registration' do
@@ -73,7 +73,7 @@ RSpec.describe SmartEnum do
           end
 
           model.register_values([{id: 1, type: 'SomeNonexistentClass'}])
-          expect(model.find(1)).to be_a(model) # no type inference
+          expect(model[1]).to be_a(model) # no type inference
         end
 
         context 'it tries to constantize types if asked' do
@@ -119,15 +119,14 @@ RSpec.describe SmartEnum do
               {id: 1, type: 'SmartEnumTestChildClass'},
               {id: 2}
             ], detect_sti_types: true)
-            expect(model.find(1).class).to eq(SmartEnumTestChildClass)
+            expect(model[1].class).to eq(SmartEnumTestChildClass)
             # Assert that value is findable from parent or child
-            expect(SmartEnumTestChildClass.find(1).class).to eq(SmartEnumTestChildClass)
+            expect(SmartEnumTestChildClass[1].class).to eq(SmartEnumTestChildClass)
 
-            expect(model.find(2).class).to eq(model)
+            expect(model[2].class).to eq(model)
             # Assert that parent classes aren't findable using child finders
-            expect{SmartEnumTestChildClass.find(2)}.to raise_error(ActiveRecord::RecordNotFound)
+            expect(SmartEnumTestChildClass[2]).to be_nil
           end
-
         end
       end
     end
@@ -205,165 +204,6 @@ RSpec.describe SmartEnum do
     end
   end
 
-  context 'querying' do
-    it 'fails when model is not locked' do
-      model = Class.new(SmartEnum) { attribute :id, Integer }
-      expect{model.find(1)}.to raise_error("Cannot use unlocked enum")
-      expect{model.find_by(id: 1)}.to raise_error("Cannot use unlocked enum")
-      expect{model.find_by!(id: 1)}.to raise_error("Cannot use unlocked enum")
-      expect{model.where(id: 1)}.to raise_error("Cannot use unlocked enum")
-    end
-
-    context 'when locked and populated' do
-      let(:model) do
-        Class.new(SmartEnum) do
-          attribute :id, Integer
-          attribute :name, String
-          attribute :enabled, SmartEnum::Boolean
-        end
-      end
-
-      before do
-        model.register_values([
-          {id: 1, name: 'A', enabled: true},
-          {id: 2, name: 'B', enabled: true},
-          {id: 3, name: 'C', enabled: false}
-        ])
-      end
-
-      describe 'where' do
-        specify do
-          result = model.where(id: 1)
-          expect(result.size).to eq(1)
-          expect(result[0].attributes).to eq(id: 1, name: 'A', enabled: true)
-
-          result = model.where(enabled: true)
-          expect(result.size).to eq(2)
-        end
-      end
-
-      describe 'find_by' do
-        it 'finds by attributes' do
-          result = model.find_by(id: 1)
-          expect(result).to be_a(model)
-          expect(result.name).to eq('A')
-          expect(result).to be_enabled
-        end
-
-        it 'returns nil when unmatched' do
-          result = model.find_by(id: 9)
-          expect(result).to eq(nil)
-        end
-      end
-
-      describe 'find' do
-        it 'finds using PK only' do
-          result = model.find(1)
-          expect(result).to be_a(model)
-        end
-
-        it 'raises on failure' do
-          expect { model.find(9999) }
-            .to raise_error(ActiveRecord::RecordNotFound, /Couldn't find.*with 'id'=9999/)
-        end
-
-        describe 'PK typecasting' do
-          context 'with integer pk' do
-            it 'supports querying by stringified integer' do
-              expect(model.find('1')).to eq(model.find(1))
-            end
-
-            it 'fails when querying by uncastable type' do
-              expect{model.find(Object.new)}.to raise_error(TypeError, "can't convert Object into Integer")
-            end
-          end
-
-          context 'with string pk' do
-            let(:str_model) { Class.new(SmartEnum) { attribute :id, String } }
-            before { str_model.register_values([{id: "first_one"}]) }
-            let(:target) { str_model.values.first }
-
-            it 'supports querying by string' do
-              expect(str_model.find('first_one')).to eq(target)
-            end
-
-            it 'supports querying by symbol' do
-              expect(str_model.find(:first_one)).to eq(target)
-            end
-          end
-
-          context 'with a weird PK' do
-            let(:weird_model) { Class.new(SmartEnum) { attribute :id, Object} }
-            let(:obj_id) { Object.new }
-            before { weird_model.register_values([{id: obj_id}]) }
-            let(:target) { weird_model.values.first }
-
-            it 'supports querying by the actual id type' do
-              expect(weird_model.find(obj_id)).to eq(target)
-            end
-
-            it 'fails when trying to query with another type' do
-              expect{weird_model.find('something')}.to raise_error 'incompatible type: got String, need [Object] or something castable to that'
-            end
-          end
-
-          context 'with symbol pk' do
-            let(:sym_model) { Class.new(SmartEnum) { attribute :id, Symbol } }
-            before { sym_model.register_values([{id: :first_one}]) }
-            let(:target) { sym_model.values.first }
-
-            it 'supports querying by string' do
-              expect(sym_model.find('first_one')).to eq(target)
-            end
-
-            it 'supports querying by symbol' do
-              expect(sym_model.find(:first_one)).to eq(target)
-            end
-          end
-        end
-      end
-
-      describe 'find_by!' do
-        it 'acts like find_by when results are available' do
-          expect(model.find_by!(id: 1)).to eq(model.find_by(id: 1))
-        end
-
-        it 'raises when the result is not available' do
-          expect { model.find_by!(id: 999) }
-            .to raise_error(ActiveRecord::RecordNotFound, /Couldn't find.*with {:id=>999}/)
-        end
-      end
-
-      describe 'query type-casting' do
-        it 'casts compatible types as necessary' do
-          expect(model.find_by(id: '1').id).to eq(1)
-        end
-
-        it 'hard-fails for uncastable types' do
-          expect{model.find_by(id: 'aa')}
-            .to raise_error(ArgumentError, 'invalid value for Integer(): "aa"')
-        end
-
-        it 'casts booleans using truthiness, *not* 1/0/t/f/etc' do
-          expect(model.find_by(enabled: '0')).to be_enabled
-          expect(model.find_by(enabled: 0)).to be_enabled
-          expect(model.find_by(enabled: 'f')).to be_enabled
-
-          # the below are the only boolean values that should return false results
-          expect(model.find_by(enabled: false)).not_to be_enabled
-          expect(model.find_by(enabled: nil)).not_to be_enabled
-        end
-
-        it 'allows nil types' do
-          expect(model.find_by(id: nil)).to eq(nil)
-        end
-      end
-    end
-  end
-
-  context 'ActiveRecord interop' do
-  end
-
   context 'association' do
     before do
       stub_const("Foo", Class.new(SmartEnum) { attribute :id, Integer} )
@@ -381,23 +221,23 @@ RSpec.describe SmartEnum do
         it 'locates associated instances' do
           Bar.register_values([{id:11}, {id: 22}])
           Foo.register_values([{id:1, bar_id: 11}])
-          foo = Foo.find(1)
+          foo = Foo[1]
           bar = foo.bar
           expect(bar).to be_a(Bar)
-          expect(bar).to eq(Bar.find(11))
+          expect(bar).to eq(Bar[11])
         end
 
         it 'ignores nil association ids' do
           Bar.register_values([{id:11}, {id: 22}])
           Foo.register_values([{id:1, bar_id: nil}])
-          foo = Foo.find(1)
+          foo = Foo[1]
           expect(foo.bar).to eq(nil)
         end
 
         it 'ignores nonexistent association ids' do
           Bar.register_values([{id:11}, {id: 22}])
           Foo.register_values([{id:1, bar_id: 33}])
-          foo = Foo.find(1)
+          foo = Foo[1]
           expect(foo.bar).to eq(nil)
         end
       end
@@ -423,7 +263,7 @@ RSpec.describe SmartEnum do
             instance = NonEnumFoo.new
             expect(instance).to respond_to(:bar=)
 
-            bar = Bar.find(11)
+            bar = Bar[11]
             #instance.bar = bar
             #expect(instance.bar).to eq(bar)
             #expect(instance.bar_id).to eq(bar.id)
@@ -444,10 +284,10 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id: 1, bar_id: 11}])
         Bar.register_values([{id: 11}])
         Baz.register_values([{id: 11}])
-        foo = Foo.find(1)
+        foo = Foo[1]
         expect(foo.bar).to be_a(Baz)
-        expect(foo.bar).to eq(Baz.find(11))
-        expect(foo.bar).not_to eq(Bar.find(11))
+        expect(foo.bar).to eq(Baz[11])
+        expect(foo.bar).not_to eq(Bar[11])
       end
 
       it 'supports overriding the inferred foreign_key' do
@@ -456,10 +296,10 @@ RSpec.describe SmartEnum do
         Foo.belongs_to_enum "bar", foreign_key: "alternate_bar_id"
         Foo.register_values([{id: 1, bar_id: 11, alternate_bar_id: 22}])
         Bar.register_values([{id: 11}, {id: 22}])
-        foo = Foo.find(1)
+        foo = Foo[1]
         expect(foo.bar).to be_a(Bar)
-        expect(foo.bar).to eq(Bar.find(22))
-        expect(foo.bar).not_to eq(Bar.find(11))
+        expect(foo.bar).to eq(Bar[22])
+        expect(foo.bar).not_to eq(Bar[11])
       end
 
       it 'fails on unsupported arguments' do
@@ -484,7 +324,7 @@ RSpec.describe SmartEnum do
         CreatedLater.register_values([{id:11}, {id: 22}])
         Foo.register_values([{id:1, created_later_id: 11}])
 
-        foo = Foo.find(1)
+        foo = Foo[1]
 
         expect(foo.created_later).to be_an_instance_of(CreatedLater)
       end
@@ -500,12 +340,12 @@ RSpec.describe SmartEnum do
         it 'locates associated instances' do
           Bar.register_values([{id:11}, {id: 22}])
           Foo.register_values([{id:1, bar_id: 11}, {id: 2, bar_id: 11}, {id: 3, bar_id: 22}])
-          bar = Bar.find(11)
+          bar = Bar[11]
           foos = bar.foos
           expect(foos.map(&:id)).to match_array([1,2])
           expect(foos).to all(be_a(Foo))
 
-          expect(Bar.find(22).foos.map(&:id)).to match_array([3])
+          expect(Bar[22].foos.map(&:id)).to match_array([3])
         end
       end
 
@@ -515,7 +355,7 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id: 1, bar_id: 11}])
         Bar.register_values([{id: 11}])
         Baz.register_values([{id: 11}])
-        bar = Bar.find(11)
+        bar = Bar[11]
         expect(bar.bazs).to all(be_a(Foo))
         expect(bar.bazs.map(&:id)).to eq([1])
       end
@@ -527,8 +367,8 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id: 1, bar_id: 11, alternate_bar_id: 22},
                              {id: 2, bar_id: 11, alternate_bar_id: 22}])
         Bar.register_values([{id: 11},{id: 22}])
-        expect(Bar.find(11).foos.size).to eq(0)
-        expect(Bar.find(22).foos.size).to eq(2)
+        expect(Bar[11].foos.size).to eq(0)
+        expect(Bar[22].foos.size).to eq(2)
       end
 
       it 'supports the :as option to override the association method name' do
@@ -537,7 +377,7 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id: 1, bar_id: 11},
                              {id: 2, bar_id: 11}])
         Bar.register_values([{id: 11}])
-        expect(Bar.find(11).my_foos.size).to eq(2)
+        expect(Bar[11].my_foos.size).to eq(2)
       end
 
       it 'can refer to a class that has not yet been defined' do
@@ -550,7 +390,7 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id:1}])
         CreatedLater.register_values([{id:11, foo_id: 1}, {id: 22, foo_id: 1}])
 
-        foo = Foo.find(1)
+        foo = Foo[1]
 
         expect(foo.created_laters.length).to eq(2)
       end
@@ -590,13 +430,13 @@ RSpec.describe SmartEnum do
             {id:60, baz_id: 6},
           ])
 
-          foo = Foo.find(1)
+          foo = Foo[1]
           bars = foo.bars
 
           expect(bars).to all(be_a(Bar))
           expect(bars.map(&:id)).to match_array([10, 11, 20, 21, 22])
 
-          bars = Foo.find(2).bars
+          bars = Foo[2].bars
           expect(bars.map(&:id)).to match_array([30, 31])
         end
 
@@ -621,13 +461,13 @@ RSpec.describe SmartEnum do
             {id:6, foo_id: 3, bar_id: 3},
           ])
 
-          foo = Foo.find(1)
+          foo = Foo[1]
           bars = foo.bars
 
           expect(bars).to all(be_a(Bar))
           expect(bars.map(&:id)).to match_array([1,4])
 
-          bars = Foo.find(2).bars
+          bars = Foo[2].bars
           expect(bars.map(&:id)).to match_array([1,2,3])
         end
       end
@@ -643,12 +483,12 @@ RSpec.describe SmartEnum do
         it 'locates associated instance' do
           Bar.register_values([{id:11}, {id: 22}])
           Foo.register_values([{id:1, bar_id: 11}, {id: 2, bar_id: 12}, {id: 3, bar_id: 22}])
-          bar = Bar.find(11)
+          bar = Bar[11]
           foo = bar.foo
           expect(foo.id).to eq(1)
           expect(foo).to be_a(Foo)
 
-          expect(Bar.find(22).foo.id).to eq(3)
+          expect(Bar[22].foo.id).to eq(3)
         end
       end
 
@@ -658,7 +498,7 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id: 1, bar_id: 11}])
         Bar.register_values([{id: 11}])
         Baz.register_values([{id: 11}])
-        bar = Bar.find(11)
+        bar = Bar[11]
         expect(bar.baz).to be_a(Foo)
         expect(bar.baz.id).to eq(1)
       end
@@ -670,8 +510,8 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id: 1, bar_id: 22, alternate_bar_id: 11},
                              {id: 2, bar_id: 11, alternate_bar_id: 22}])
         Bar.register_values([{id: 11},{id: 22}])
-        expect(Bar.find(11).foo.id).to eq(1)
-        expect(Bar.find(22).foo.id).to eq(2)
+        expect(Bar[11].foo.id).to eq(1)
+        expect(Bar[22].foo.id).to eq(2)
       end
 
       it 'can refer to a class that has not yet been defined' do
@@ -684,7 +524,7 @@ RSpec.describe SmartEnum do
         Foo.register_values([{id:1}])
         CreatedLater.register_values([{id:11, foo_id: 1}, {id: 22, foo_id: 2}])
 
-        foo = Foo.find(1)
+        foo = Foo[1]
 
         expect(foo.created_later.id).to eq(11)
       end
@@ -704,11 +544,11 @@ RSpec.describe SmartEnum do
           Baz.register_values([{id: 31},{id: 32}])
           Bar.register_values([{id:11, foo_id: 1, baz_id: 31}, {id: 22, foo_id: 2, baz_id: 32}])
 
-          foo = Foo.find(1)
+          foo = Foo[1]
           expect(foo.baz).to be_a(Baz)
           expect(foo.baz.id).to eq(31)
 
-          foo = Foo.find(2)
+          foo = Foo[2]
           expect(foo.baz).to be_a(Baz)
           expect(foo.baz.id).to eq(32)
         end
@@ -726,11 +566,11 @@ RSpec.describe SmartEnum do
           Baz.register_values([{id: 31},{id: 32}])
           Bar.register_values([{id:11, foo_id: 1, baz_id: 31}, {id: 22, foo_id: 2, baz_id: 32}])
 
-          foo = Foo.find(1)
+          foo = Foo[1]
           expect(foo.baz).to be_a(Baz)
           expect(foo.baz.id).to eq(31)
 
-          foo = Foo.find(2)
+          foo = Foo[2]
           expect(foo.baz).to be_a(Baz)
           expect(foo.baz.id).to eq(32)
       end
