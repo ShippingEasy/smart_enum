@@ -3,7 +3,6 @@ require "smart_enum/active_record_interop"
 require "smart_enum/associations"
 require "smart_enum/attributes"
 require "smart_enum/querying"
-require "smart_enum/registration"
 
 require "active_support/all" # TODO: only require parts we need
 require "active_record" # Temporary: should become opt-in
@@ -59,7 +58,6 @@ class SmartEnum
     end
   end
 
-  extend Registration
   extend Associations
   extend Querying
   include ActiveRecordInterop
