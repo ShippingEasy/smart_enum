@@ -39,12 +39,24 @@ class SmartEnum
   include ActiveModel::Serialization
   include SmartEnum::Attributes
 
-  def self.enum_values
-    @enum_values ||= {}
+  def self.[](id)
+    raise "Cannot use unlocked enum" unless @enum_locked
+    _enum_storage[id]
+  end
+
+  def self.values
+    raise "Cannot use unlocked enum" unless @enum_locked
+    _enum_storage.values
   end
 
   def self.enum_locked?
     @enum_locked
+  end
+
+  class << self
+    private def _enum_storage
+      @_enum_storage ||= {}
+    end
   end
 
   extend Registration

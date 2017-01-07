@@ -3,7 +3,6 @@ require 'bigdecimal'
 class SmartEnum
   module Querying
     def where(uncast_attrs)
-      raise "Cannot use unlocked enum" unless @enum_locked
       attrs = cast_query_attrs(uncast_attrs)
       all.select do |instance|
         instance.attributes.slice(*attrs.keys) == attrs
@@ -11,8 +10,7 @@ class SmartEnum
     end
 
     def find(id, raise_on_missing: true)
-      raise "Cannot use unlocked enum" unless @enum_locked
-      enum_values[cast_primary_key(id)].tap do |result|
+      self[cast_primary_key(id)].tap do |result|
         if !result && raise_on_missing
           fail ActiveRecord::RecordNotFound.new("Couldn't find #{self} with 'id'=#{id}")
         end
@@ -20,7 +18,6 @@ class SmartEnum
     end
 
     def find_by(uncast_attrs)
-      raise "Cannot use unlocked enum" unless @enum_locked
       attrs = cast_query_attrs(uncast_attrs)
       if attrs.size == 1 && attrs.has_key?(:id)
         return find(attrs[:id], raise_on_missing: false)
@@ -43,7 +40,7 @@ class SmartEnum
     end
 
     def all
-      enum_values.values
+      values
     end
 
     STRING = [String]

@@ -9,7 +9,7 @@ RSpec.describe SmartEnum do
         end
 
         model.register_value({id: 99})
-        expect(model.enum_values.keys).to eq([99])
+        expect(model._enum_storage.keys).to eq([99])
         expect(model.enum_locked?).to be_falsey
       end
 
@@ -40,7 +40,7 @@ RSpec.describe SmartEnum do
             /Specified class .* must derive from .*/
           )
           # it works this way though
-          expect(parent.enum_values.keys).to eq([1])
+          expect(parent._enum_storage.keys).to eq([1])
           parent.lock_enum!
           expect(parent.find(1).class).to eq(child1)
         end
@@ -51,7 +51,7 @@ RSpec.describe SmartEnum do
       it 'adds multiple instances to the values hash and locks it' do
         model = Class.new(SmartEnum) { attribute :id, Integer }
         model.register_values([{id: 77}, {'id'=> 88}]) # test symbolization while we're at it
-        expect(model.enum_values.keys).to match_array([77,88])
+        expect(model._enum_storage.keys).to match_array([77,88])
         expect(model.enum_locked?).to eq(true)
         expect(model.find(77)).to be_a(model)
         expect(model.find(88)).to be_a(model)
@@ -143,7 +143,7 @@ RSpec.describe SmartEnum do
 
         Foo.register_values_from_file!
 
-        expect(Foo.enum_values.length).to eq(3)
+        expect(Foo._enum_storage.length).to eq(3)
         expect(Foo.find(1).name).to eq("first")
         expect(Foo.find(2).name).to eq("second")
         expect(Foo.find(3).name).to eq("third")
@@ -175,7 +175,7 @@ RSpec.describe SmartEnum do
         model = Class.new(SmartEnum) { attribute :id, Integer }
         model.register_value(id: 1)
         model.lock_enum!
-        expect{model.enum_values[1] = 'something else!'}.to raise_error("can't modify frozen Hash")
+        expect{model._enum_storage[1] = 'something else!'}.to raise_error("can't modify frozen Hash")
       end
 
       it 'locks all descendant classes' do
@@ -194,6 +194,45 @@ RSpec.describe SmartEnum do
         expect(parent.enum_locked?).to eq(true)
         expect(child.enum_locked?).to eq(true)
       end
+    end
+  end
+
+  context 'access' do
+    let(:model) do
+      Class.new(SmartEnum) do
+        attribute :id, Integer
+        attribute :name, String
+        attribute :enabled, SmartEnum::Boolean
+      end
+    end
+
+    before do
+      model.register_values([
+        {id: 1, name: 'A', enabled: true},
+        {id: 2, name: 'B', enabled: true},
+        {id: 3, name: 'C', enabled: false}
+      ])
+    end
+
+    it 'fails when model is not locked' do
+      model = Class.new(SmartEnum) { attribute :id, Integer }
+      expect{model[1]}.to raise_error("Cannot use unlocked enum")
+      expect{model.values}.to raise_error("Cannot use unlocked enum")
+    end
+
+    it 'can access value by id' do
+      expect(model[2]).to be_a(model)
+      expect(model[2].name).to eq('B')
+    end
+
+    it 'returns nil for undefined id' do
+      expect(model[99]).to be_nil
+      expect(model['2']).to be_nil
+    end
+
+    it 'can return all values' do
+      expect(model.values).to all(be_a(model))
+      expect(model.values.map(&:id)).to match_array([1,2,3])
     end
   end
 
@@ -273,7 +312,7 @@ RSpec.describe SmartEnum do
           context 'with string pk' do
             let(:str_model) { Class.new(SmartEnum) { attribute :id, String } }
             before { str_model.register_values([{id: "first_one"}]) }
-            let(:target) { str_model.enum_values.values.first }
+            let(:target) { str_model._enum_storage.values.first }
 
             it 'supports querying by string' do
               expect(str_model.find('first_one')).to eq(target)
@@ -288,7 +327,7 @@ RSpec.describe SmartEnum do
             let(:weird_model) { Class.new(SmartEnum) { attribute :id, Object} }
             let(:obj_id) { Object.new }
             before { weird_model.register_values([{id: obj_id}]) }
-            let(:target) { weird_model.enum_values.values.first }
+            let(:target) { weird_model._enum_storage.values.first }
 
             it 'supports querying by the actual id type' do
               expect(weird_model.find(obj_id)).to eq(target)
@@ -302,7 +341,7 @@ RSpec.describe SmartEnum do
           context 'with symbol pk' do
             let(:sym_model) { Class.new(SmartEnum) { attribute :id, Symbol } }
             before { sym_model.register_values([{id: :first_one}]) }
-            let(:target) { sym_model.enum_values.values.first }
+            let(:target) { sym_model._enum_storage.values.first }
 
             it 'supports querying by string' do
               expect(sym_model.find('first_one')).to eq(target)

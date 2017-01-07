@@ -4,10 +4,10 @@ class SmartEnum
   module Registration
     def lock_enum!
       @enum_locked = true
-      enum_values.freeze
+      _enum_storage.freeze
       self.descendants.each do |klass|
         klass.instance_variable_set(:@enum_locked, true)
-        klass.enum_values.freeze
+        klass._enum_storage.freeze
       end
     end
 
@@ -43,10 +43,10 @@ class SmartEnum
         instance = klass.new(attrs)
         id = instance.id
         raise "Must provide id" unless id
-        raise "Already registered id #{id}!" if enum_values.has_key?(id)
-        enum_values[id] = instance
+        raise "Already registered id #{id}!" if _enum_storage.has_key?(id)
+        _enum_storage[id] = instance
         if klass != self
-          klass.enum_values[id] = instance
+          klass._enum_storage[id] = instance
         end
       end
       lock_enum!
@@ -60,8 +60,8 @@ class SmartEnum
       instance = enum_type.new(attrs)
       id = instance.id
       raise "Must provide id" unless id
-      raise "Already registered id #{id}!" if enum_values.has_key?(id)
-      enum_values[id] = instance
+      raise "Already registered id #{id}!" if _enum_storage.has_key?(id)
+      _enum_storage[id] = instance
     end
 
     def self.data_root
