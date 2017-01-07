@@ -63,11 +63,11 @@ class SmartEnum
   include ActiveRecordInterop
 
   def self.lock_enum!
+    return if @enum_locked
     @enum_locked = true
     _enum_storage.freeze
     self.descendants.each do |klass|
-      klass.instance_variable_set(:@enum_locked, true)
-      klass._enum_storage.freeze
+      klass.lock_enum!
     end
   end
 
