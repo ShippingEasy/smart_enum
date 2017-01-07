@@ -9,9 +9,15 @@ RSpec.describe SmartEnum::Attributes do
     end
   end
 
-  it "provides a useful #inspect" do
+  it "provides a useful .inspect" do
     stub_const("Foo", simple_model)
     expect(simple_model.inspect).to eq("Foo(UNLOCKED id: Integer, name: String)")
+  end
+
+  it "provides a useful #inspect" do
+    stub_const("Foo", simple_model)
+    instance = Foo.new(id: 3, name: "John")
+    expect(instance.inspect).to eq('#<Foo id: 3, name: "John">')
   end
 
   describe 'initializer' do

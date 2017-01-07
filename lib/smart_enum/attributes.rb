@@ -101,6 +101,10 @@ class SmartEnum
       end
     end
 
+    def inspect
+      "#<#{self.class} #{attributes.map{|k,v| "#{k}: #{v.inspect}"}.join(", ")}>"
+    end
+
     class Attribute
       attr_reader :name, :types, :coercer
 
