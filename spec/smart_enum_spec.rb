@@ -29,20 +29,40 @@ RSpec.describe SmartEnum do
       end
 
       describe 'descendant class registration' do
-        it 'accepts the :enum_type option, but validates ancestorship' do
-          parent = Class.new(SmartEnum) { attribute :id, Integer }
-          child1 = Class.new(parent)
-          child2 = Class.new(parent)
+        let(:parent) { Class.new(SmartEnum) { attribute :id, Integer } }
+        let(:child1) { Class.new(parent) }
+        let(:child2) { Class.new(parent) }
+
+        it 'accepts the :enum_type option' do
           parent.register_value(id: 1, enum_type: child1)
+          parent.lock_enum!
+
+          expect(parent[1].class).to eq(child1)
+        end
+
+        it 'prevents registering enum_types that are not ancestors' do
           expect{child1.register_value(id: 2, enum_type: parent)}.to raise_error(
             /Specified class .* must derive from .*/
           )
           expect{child2.register_value(id: 2, enum_type: child1)}.to raise_error(
             /Specified class .* must derive from .*/
           )
-          # it works this way though
+        end
+
+        it 'allows looking up a child value via the child class' do
+          parent.register_value(id: 1, enum_type: child1)
+          parent.register_value(id: 2, enum_type: child2)
           parent.lock_enum!
-          expect(parent[1].class).to eq(child1)
+
+          expect(child1[1].class).to eq(child1)
+        end
+
+        it 'does not allow looking up a child value from a sibling type' do
+          parent.register_value(id: 1, enum_type: child1)
+          parent.register_value(id: 2, enum_type: child2)
+          parent.lock_enum!
+
+          expect(child2[1]).to be_nil
         end
       end
     end

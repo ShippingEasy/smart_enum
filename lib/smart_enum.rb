@@ -52,6 +52,14 @@ class SmartEnum
     protected def _enum_storage
       @_enum_storage ||= {}
     end
+
+    private def _constantize_cache
+      @_constantize_cache ||= {}
+    end
+
+    private def _descends_from_cache
+      @_descends_from_cache ||= {}
+    end
   end
 
   extend Associations
@@ -59,6 +67,9 @@ class SmartEnum
   def self.lock_enum!
     return if @enum_locked
     @enum_locked = true
+    @_constantize_cache = nil
+    @_descends_from_cache = nil
+
     _enum_storage.freeze
     self.descendants.each do |klass|
       klass.lock_enum!
@@ -66,42 +77,35 @@ class SmartEnum
   end
 
   def self.register_values(values, enum_type=self, detect_sti_types: false)
-    fail EnumLocked.new(self) if enum_locked?
-    constantize_cache = {}
-    descends_from_cache = {}
     values.each do |raw_attrs|
-      attrs = raw_attrs.symbolize_keys
-
-      klass = if detect_sti_types
-                constantize_cache[attrs[:type]] ||= (attrs[:type].try(:constantize) || enum_type)
-              else
-                enum_type
-              end
-      unless (descends_from_cache[klass] ||= (klass <= self))
-        raise "Specified class #{klass} must derive from #{self}"
-      end
-      instance = klass.new(attrs)
-      id = instance.id
-      raise "Must provide id" unless id
-      raise "Already registered id #{id}!" if _enum_storage.has_key?(id)
-      _enum_storage[id] = instance
-      if klass != self
-        klass._enum_storage[id] = instance
-      end
+      register_value(enum_type: enum_type, detect_sti_types: detect_sti_types, **raw_attrs.symbolize_keys)
     end
     lock_enum!
   end
 
-  def self.register_value(enum_type: self, **attrs)
+  # TODO: allow a SmartEnum to define its own type discriminator attr?
+  DEFAULT_TYPE_ATTR_STR = "type".freeze
+  DEFAULT_TYPE_ATTR_SYM = :type
+
+  def self.register_value(enum_type: self, detect_sti_types: false, **attrs)
     fail EnumLocked.new(enum_type) if enum_locked?
-    unless enum_type <= self
-      raise "Specified class #{enum_type} must derive from #{self}"
+    type_attr_val = attrs[DEFAULT_TYPE_ATTR_STR] || attrs[DEFAULT_TYPE_ATTR_SYM]
+    klass = if type_attr_val && detect_sti_types
+              _constantize_cache[type_attr_val] ||= type_attr_val.constantize
+            else
+              enum_type
+            end
+    unless (_descends_from_cache[klass] ||= (klass <= self))
+      raise "Specified class #{klass} must derive from #{self}"
     end
-    instance = enum_type.new(attrs)
+    instance = klass.new(attrs)
     id = instance.id
     raise "Must provide id" unless id
     raise "Already registered id #{id}!" if _enum_storage.has_key?(id)
     _enum_storage[id] = instance
+    if klass != self
+      klass._enum_storage[id] = instance
+    end
   end
 
   class EnumLocked < StandardError
