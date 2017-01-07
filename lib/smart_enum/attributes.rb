@@ -24,7 +24,6 @@
 #
 class SmartEnum
   module Attributes
-    Attribute = Struct.new(:name, :types, :coercer)
     Boolean = [TrueClass, FalseClass]
 
     def self.included(base)
@@ -52,6 +51,11 @@ class SmartEnum
         if types == Boolean
           alias_method "#{name}?".to_sym, name
         end
+      end
+
+      def inspect
+        lock_str = @enum_locked ? "LOCKED" : "UNLOCKED"
+        "#{self}(#{lock_str} #{attribute_set.values.map(&:inspect).join(", ")})"
       end
     end
 
@@ -94,6 +98,21 @@ class SmartEnum
       end
       if init_opts.any?
         fail "unrecognized options: #{init_opts.inspect}"
+      end
+    end
+
+    class Attribute
+      attr_reader :name, :types, :coercer
+
+      def initialize(name, types, coercer)
+        @name = name
+        @types = types
+        @coercer = coercer
+      end
+
+      def inspect
+        type_str = types.length > 1 ? types.join("|") : types[0]
+        "#{name}: #{type_str}"
       end
     end
   end

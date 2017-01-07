@@ -9,6 +9,11 @@ RSpec.describe SmartEnum::Attributes do
     end
   end
 
+  it "provides a useful #inspect" do
+    stub_const("Foo", simple_model)
+    expect(simple_model.inspect).to eq("Foo(UNLOCKED id: Integer, name: String)")
+  end
+
   describe 'initializer' do
     it 'forces you to have at least one attribute' do
       EmptyModel = Class.new { include SmartEnum::Attributes }
