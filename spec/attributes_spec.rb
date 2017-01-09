@@ -21,6 +21,10 @@ RSpec.describe SmartEnum::Attributes do
   end
 
   describe 'initializer' do
+    it 'blows up given an AR-style initializer block' do
+      expect{simple_model.new{|m| m.id = 1}}.to raise_error("Block passed, but it would be ignored")
+    end
+
     it 'forces you to have at least one attribute' do
       EmptyModel = Class.new { include SmartEnum::Attributes }
       expect{EmptyModel.new}.to raise_error(/no attributes defined for EmptyModel/)

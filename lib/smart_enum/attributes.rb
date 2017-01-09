@@ -64,6 +64,9 @@ class SmartEnum
     end
 
     def initialize(opts={})
+      if block_given?
+        fail "Block passed, but it would be ignored"
+      end
       init_opts = opts.symbolize_keys
       if self.class.attribute_set.empty?
         fail "no attributes defined for #{self.class}"
