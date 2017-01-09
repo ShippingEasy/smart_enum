@@ -11,6 +11,17 @@ RSpec.describe SmartEnum::ActiveRecordCompatibility do
     expect(instance.serializable_hash).to eq({id: 1, name: "Tony"})
   end
 
+  describe 'base_class' do
+    it 'determines the root of an inheritence tree' do
+      parent = Class.new(SmartEnum)
+      child = Class.new(parent)
+      deep_child = Class.new(child)
+      expect(parent.base_class).to eq(parent)
+      expect(child.base_class).to eq(parent)
+      expect(deep_child.base_class).to eq(parent)
+    end
+  end
+
   context 'querying' do
     it 'fails when model is not locked' do
       model = Class.new(SmartEnum) { attribute :id, Integer }

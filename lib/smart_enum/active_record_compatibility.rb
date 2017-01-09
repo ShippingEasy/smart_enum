@@ -20,6 +20,19 @@ class SmartEnum
       def reset_column_information
         # no-op for legacy migration compatability
       end
+
+      # Used in AR polymorphic associations.  Returns the base of this class' SmartEnum STI tree.
+      def base_class
+        unless self < ::SmartEnum
+          raise ActiveRecordError, "#{name} doesn't belong in a hierarchy descending from SmartEnum"
+        end
+
+        if superclass == ::SmartEnum
+          self
+        else
+          superclass.base_class
+        end
+      end
     end
 
     def to_key
