@@ -102,7 +102,7 @@ class SmartEnum
     id = instance.id
     raise "Must provide id" unless id
     raise "Already registered id #{id}!" if _enum_storage.has_key?(id)
-    instance.freeze
+    instance.freeze_attributes
     _enum_storage[id] = instance
     if klass != self
       klass._enum_storage[id] = instance
