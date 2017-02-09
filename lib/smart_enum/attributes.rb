@@ -111,7 +111,7 @@ class SmartEnum
     def freeze
       attributes.values.each(&:freeze)
       attributes.freeze
-      super
+      self
     end
 
     class Attribute
