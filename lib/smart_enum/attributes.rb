@@ -108,6 +108,12 @@ class SmartEnum
       "#<#{self.class} #{attributes.map{|k,v| "#{k}: #{v.inspect}"}.join(", ")}>"
     end
 
+    def freeze
+      attributes.values.each(&:freeze)
+      attributes.freeze
+      super
+    end
+
     class Attribute
       attr_reader :name, :types, :coercer
 

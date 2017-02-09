@@ -104,6 +104,36 @@ RSpec.describe SmartEnum::Attributes do
     end
   end
 
+  describe '#freeze' do
+    let(:model) { Class.new do
+      include SmartEnum::Attributes
+      attribute :foo, String
+      attribute :bars, Array
+    end }
+
+    let(:instance) { model.new(foo: 'a', bars: [1,2]) }
+
+    it 'prevents modification of underlying attributes' do
+      expect{instance.foo << 'b'}.not_to raise_error
+      expect{instance.bars << 3}.not_to raise_error
+      instance.freeze
+      expect{instance.foo << 'b'}.to raise_error(RuntimeError, "can't modify frozen String")
+      expect{instance.bars << 3}.to raise_error(RuntimeError, "can't modify frozen Array")
+    end
+
+    it 'prevents indirect modification of underlying attributes' do
+      instance.freeze
+      not_a_copy = instance.foo
+      expect{not_a_copy << 'b'}.to raise_error(RuntimeError, "can't modify frozen String")
+    end
+
+    it 'prevents modification of the attributes hash itself' do
+      expect{instance.attributes[:baz] = 123}.not_to raise_error
+      instance.freeze
+      expect{instance.attributes[:qux] = 123}.to raise_error(RuntimeError, "can't modify frozen Hash")
+    end
+  end
+
   describe 'attribute_set' do
     it 'allows introspection of defined attributes' do
       attribute_set = simple_model.attribute_set
