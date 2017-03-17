@@ -41,11 +41,11 @@ class SmartEnum
         child_class.instance_variable_set(:@attribute_set, self.attribute_set.dup)
       end
 
-      def attribute(name, types, coercer: nil)
+      def attribute(name, types, coercer: nil, reader_method: nil)
         name = name.to_sym
         types = Array.wrap(types)
         attribute_set[name] = Attribute.new(name, types, coercer)
-        define_method(name) do
+        define_method(reader_method || name) do
           attributes[name]
         end
         if types == Boolean

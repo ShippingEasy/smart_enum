@@ -35,6 +35,16 @@ RSpec.describe SmartEnum::Attributes do
       expect(instance.attributes).to eq({id: 1, name: 'foo'})
     end
 
+    it 'allows override of the reader_method name' do
+      model = Class.new {
+        include SmartEnum::Attributes
+        attribute :foo, String, reader_method: :bar
+      }
+      instance = model.new(foo: '123')
+      expect(instance.attributes[:foo]).to eq('123')
+      expect(instance.bar).to eq('123')
+    end
+
     it 'defaults values to nil' do
       instance = simple_model.new
       expect(instance.attributes).to eq({id: nil, name: nil})
