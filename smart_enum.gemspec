@@ -3,6 +3,8 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'smart_enum/version'
 
+require_relative '../../lib/match_shipit_version'
+
 Gem::Specification.new do |spec|
   spec.name          = "smart_enum"
   spec.version       = SmartEnum::VERSION
@@ -26,6 +28,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
 
   # needed to run test suite for optional features, but consumers don't need it
-  spec.add_development_dependency "activerecord", "4.2.6"
+  spec.match_shipit_version "activerecord", development: true
   spec.add_development_dependency "money"
 end
