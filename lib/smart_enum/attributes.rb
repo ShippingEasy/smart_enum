@@ -78,7 +78,7 @@ class SmartEnum
             attributes[attr_name] = arg
           elsif attr_def.coercer
             coerced_arg = attr_def.coercer.call(arg)
-            if !attr_def.types.any?{|type| coerced_arg.is_a?(type) }
+            if attr_def.types.none?{|type| coerced_arg.is_a?(type) }
               # Coercer didn't give correct type
               fail "coercer for #{attr_name} failed to coerce #{arg} to one of #{attr_def.types.inspect}.  Got #{coerced_arg}:#{coerced_arg.class} instead"
             end
