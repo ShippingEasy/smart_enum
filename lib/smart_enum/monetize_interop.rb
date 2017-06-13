@@ -4,7 +4,7 @@ class SmartEnum
   module MonetizeInterop
     require 'money'
 
-    CENTS_SUFFIX = /_cents\z/.freeze
+    CENTS_SUFFIX = /_cents\z/
     # Note: this ignores the currency column since we only ever monetize things
     # as USD.  If that changes this should start reading the currency column.
     def monetize(cents_field_name, as: nil, **opts)
