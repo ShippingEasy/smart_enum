@@ -7,8 +7,8 @@ class SmartEnum
         return has_many_enums_through(association_name, through, source: source)
       end
 
-      association = enum_associations[association_name] =
-        HasAssociation.new(self, association_name, class_name: class_name, as: as, foreign_key: foreign_key)
+      association = HasAssociation.new(self, association_name, class_name: class_name, as: as, foreign_key: foreign_key)
+      enum_associations[association_name] = association
 
       define_method(association.generated_method_name) do
         association.association_class.values.select{|instance|
@@ -23,8 +23,8 @@ class SmartEnum
       end
 
       association_name = association_name.to_sym
-      association = enum_associations[association_name] =
-        HasAssociation.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
+      association = HasAssociation.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
+      enum_associations[association_name] = association
 
       define_method(association_name) do
         association.association_class.values.detect{|instance|
@@ -34,16 +34,18 @@ class SmartEnum
     end
 
     def has_one_enum_through(association_name, through_association, source: nil)
-      association = enum_associations[association_name] =
-        ThroughAssociation.new(association_name, through_association, source: source)
+      association = ThroughAssociation.new(association_name, through_association, source: source)
+      enum_associations[association_name] = association
+
       define_method(association_name) do
         public_send(association.through_association).try(association.association_method)
       end
     end
 
     def has_many_enums_through(association_name, through_association, source: nil)
-      association = enum_associations[association_name] =
-        ThroughAssociation.new(association_name, through_association, source: source)
+      association = ThroughAssociation.new(association_name, through_association, source: source)
+      enum_associations[association_name] = association
+
       define_method(association_name) do
         public_send(association.through_association).
           flat_map(&association.association_method).compact.tap(&:freeze)
@@ -52,8 +54,8 @@ class SmartEnum
 
     def belongs_to_enum(association_name, class_name: nil, foreign_key: nil)
       association_name = association_name.to_sym
-      association = enum_associations[association_name] =
-        Association.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
+      association = Association.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
+      enum_associations[association_name] = association
 
       define_method(association_name) do
         id_to_find = self.public_send(association.foreign_key)
