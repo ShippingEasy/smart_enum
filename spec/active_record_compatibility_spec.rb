@@ -11,6 +11,32 @@ RSpec.describe SmartEnum::ActiveRecordCompatibility do
     expect(instance.serializable_hash).to eq({id: 1, name: "Tony"})
   end
 
+  describe "naming" do
+    around do |example|
+      FakeSmartModel = Class.new(SmartEnum) {
+        attribute :id, Integer
+        attribute :name, String
+      }
+
+      example.run
+
+      Object.send(:remove_const, "FakeSmartModel")
+      expect(defined?(FakeSmartModel)).to be_falsey
+    end
+
+    it "reports its model name like an ActiveRecord instance" do
+      instance = FakeSmartModel.new({id: 1, name: "Tony"})
+
+      expect(instance.model_name.name).to eq("FakeSmartModel")
+    end
+
+    it "reports its param_key like an ActiveRecord instance" do
+      instance = FakeSmartModel.new({id: 3, name: "Tony"})
+
+      expect(instance.model_name.param_key).to eq("fake_smart_model")
+    end
+  end
+
   describe 'base_class' do
     it 'determines the root of an inheritence tree' do
       parent = Class.new(SmartEnum)

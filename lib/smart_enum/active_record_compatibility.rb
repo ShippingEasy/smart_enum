@@ -7,6 +7,7 @@ class SmartEnum
   module ActiveRecordCompatibility
     def self.included(base)
       base.include(ActiveModel::Serialization)
+      base.extend(ActiveModel::Naming)
       base.extend(ClassMethods)
       base.extend(QueryMethods)
     end
@@ -37,10 +38,6 @@ class SmartEnum
 
     def to_key
       [id]
-    end
-
-    def model_name
-      ActiveModel::Name.new(self)
     end
 
     def _read_attribute(attribute_name)
