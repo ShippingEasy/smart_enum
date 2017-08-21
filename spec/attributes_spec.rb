@@ -90,7 +90,7 @@ RSpec.describe SmartEnum::Attributes do
           attribute :foo, String, coercer: ->(obj) { 100 }
         end
         expect{model.new(foo: Object.new)}.to raise_error(
-          /coercer for foo failed to coerce .* to one of \[String\].  Got 100:Fixnum instead/
+          /coercer for foo failed to coerce .* to one of \[String\].  Got 100:Integer instead/
         )
       end
 
