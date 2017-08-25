@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "smart_enum/version"
 require "smart_enum/associations"
 require "smart_enum/attributes"
@@ -84,7 +86,7 @@ class SmartEnum
   end
 
   # TODO: allow a SmartEnum to define its own type discriminator attr?
-  DEFAULT_TYPE_ATTR_STR = "type".freeze
+  DEFAULT_TYPE_ATTR_STR = "type"
   DEFAULT_TYPE_ATTR_SYM = :type
 
   def self.register_value(enum_type: self, detect_sti_types: false, **attrs)

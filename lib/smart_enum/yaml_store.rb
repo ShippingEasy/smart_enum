@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'yaml'
 # Methods for registering values from YAML files
 class SmartEnum

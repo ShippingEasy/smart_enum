@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # A simple replacement for Virtus.
 # - Objects are currently readonly once initialized.
 # - Initialization args either match their type annotation or are nil.

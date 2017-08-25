@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Simple emulation of the monetize macro.
 class SmartEnum
   INTEGER = [Integer]

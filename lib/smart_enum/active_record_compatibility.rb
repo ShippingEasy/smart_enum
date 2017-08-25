@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'bigdecimal'
 require "active_record"
 
@@ -13,7 +15,7 @@ class SmartEnum
     end
 
     module ClassMethods
-      ID = "id".freeze
+      ID = "id"
       def primary_key
         ID
       end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Macros for registring associations with other SmartEnum models
 class SmartEnum
   module Associations
