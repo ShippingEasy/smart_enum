@@ -23,13 +23,8 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "activesupport"
-
-  spec.add_development_dependency "bundler", "~> 1.11"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
 
   # needed to run test suite for optional features, but consumers don't need it
+  spec.match_shipit_version "activesupport"
   spec.match_shipit_version "activerecord", development: true
-  spec.add_development_dependency "money"
 end
