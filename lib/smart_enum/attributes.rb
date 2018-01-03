@@ -18,11 +18,11 @@
 #   end
 #
 #   Foo.new(id: 1, created_at: '2016-1-1')
-#   # => #<Foo:0x007f970a090760 @attributes={:id=>1, :created_at=>"2016-01-01T00:00:00.000-06:00", :enabled=>false}}> 
+#   # => #<Foo:0x007f970a090760 @attributes={:id=>1, :created_at=>"2016-01-01T00:00:00.000-06:00", :enabled=>false}}>
 #   Foo.new(id: 1, created_at: 123)
 #   # TypeError: no implicit conversion of 123 into String
 #   Foo.new(id: 1, enabled: true).enabled?
-#   # => true 
+#   # => true
 #
 class SmartEnum
   module Attributes
