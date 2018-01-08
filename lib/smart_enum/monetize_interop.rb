@@ -2,7 +2,7 @@
 
 # Simple emulation of the monetize macro.
 class SmartEnum
-  INTEGER = [Integer]
+  INTEGER = [Integer].freeze
   module MonetizeInterop
     require 'money'
 

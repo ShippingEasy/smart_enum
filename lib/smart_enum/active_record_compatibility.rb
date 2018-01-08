@@ -105,11 +105,11 @@ class SmartEnum
         values
       end
 
-      STRING = [String]
-      SYMBOL = [Symbol]
-      BOOLEAN = [TrueClass, FalseClass]
-      INTEGER = [Integer]
-      BIG_DECIMAL = [BigDecimal]
+      STRING = [String].freeze
+      SYMBOL = [Symbol].freeze
+      BOOLEAN = [TrueClass, FalseClass].freeze
+      INTEGER = [Integer].freeze
+      BIG_DECIMAL = [BigDecimal].freeze
       # Ensure that the attrs we query by are compatible with the internal
       # types, casting where possible.  This allows us to e.g.
       #   find_by(id: '1', key: :blah)

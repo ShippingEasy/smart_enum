@@ -26,7 +26,7 @@
 #
 class SmartEnum
   module Attributes
-    Boolean = [TrueClass, FalseClass]
+    Boolean = [TrueClass, FalseClass].freeze
 
     def self.included(base)
       base.extend(ClassMethods)
