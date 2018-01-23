@@ -37,10 +37,13 @@ class SmartEnum
         @attribute_set ||= {}
       end
 
-      # STI children should start with an attribute set cloned from their parent.
-      # Otherwise theirs will start blank.
       def inherited(child_class)
+        # STI children should start with an attribute set cloned from their parent.
+        # Otherwise theirs will start blank.
         child_class.instance_variable_set(:@attribute_set, self.attribute_set.dup)
+        # STI children must *share* a reference to the same init_mutex as their
+        # parent so that reads are correctly blocked during async loading.
+        child_class.instance_variable_set(:@_init_mutex, @_init_mutex)
       end
 
       def attribute(name, types, coercer: nil, reader_method: nil)
@@ -56,8 +59,10 @@ class SmartEnum
       end
 
       def inspect
-        lock_str = @enum_locked ? "LOCKED" : "UNLOCKED"
-        "#{self}(#{lock_str} #{attribute_set.values.map(&:inspect).join(", ")})"
+        init_mutex.synchronize do
+          lock_str = enum_locked? ? "LOCKED" : "UNLOCKED"
+          "#{self}(#{lock_str} #{attribute_set.values.map(&:inspect).join(", ")})"
+        end
       end
     end
 

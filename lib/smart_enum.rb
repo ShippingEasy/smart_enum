@@ -37,13 +37,17 @@ class SmartEnum
   include SmartEnum::Attributes
 
   def self.[](id)
-    raise "Cannot use unlocked enum" unless @enum_locked
-    _enum_storage[id]
+    init_mutex.synchronize do
+      raise "Cannot use unlocked enum" unless @enum_locked
+      _enum_storage[id]
+    end
   end
 
   def self.values
-    raise "Cannot use unlocked enum" unless @enum_locked
-    _enum_storage.values
+    init_mutex.synchronize do
+      raise "Cannot use unlocked enum" unless @enum_locked
+      _enum_storage.values
+    end
   end
 
   def self.enum_locked?
@@ -62,12 +66,28 @@ class SmartEnum
     private def _descends_from_cache
       @_descends_from_cache ||= {}
     end
+
+    private def _deferred_attr_hashes
+      @_deferred_attr_hashes ||= []
+    end
+
+    private def process_deferred_attr_hashes
+      _deferred_attr_hashes.each do |args|
+        register_value(**args)
+      end
+    end
+
+    # Prevent read access during an async call to #lock_enum!
+    private def init_mutex
+      @_init_mutex ||= Mutex.new
+    end
   end
 
   extend Associations
 
   def self.lock_enum!
     return if @enum_locked
+    process_deferred_attr_hashes
     @enum_locked = true
     @_constantize_cache = nil
     @_descends_from_cache = nil
@@ -80,9 +100,29 @@ class SmartEnum
 
   def self.register_values(values, enum_type=self, detect_sti_types: false)
     values.each do |raw_attrs|
-      register_value(enum_type: enum_type, detect_sti_types: detect_sti_types, **raw_attrs.symbolize_keys)
+      _deferred_attr_hashes << raw_attrs.symbolize_keys.merge(enum_type: enum_type, detect_sti_types: detect_sti_types)
     end
-    lock_enum!
+    enum_type_name = enum_type.name
+    # If we are configured to handle STI and any of our enum values use the
+    # type discriminator column, there is a risk of a circular dependency issue
+    # if a child class is referenced before the base class.  We can sidestep
+    # this by locking the enum in a thread after sleeping a short while.
+    if detect_sti_types && _deferred_attr_hashes.any?{|h| h[DEFAULT_TYPE_ATTR_SYM] && h[DEFAULT_TYPE_ATTR_SYM] != enum_type_name}
+      t = Thread.new do
+        init_mutex.synchronize do
+          # sleep long enough for the main thread to have finished loading the
+          # base class so the autoloader won't raise a circular dep error.
+          sleep 0.2
+          lock_enum!
+        end
+      end
+      t.abort_on_exception = true
+    else
+      # If we are not handling STI (or our hashes don't actually use the type
+      # column) then there is no risk of a circular dependency issue and we are
+      # free to process our hashes and lock the enum storage immediately.
+      lock_enum!
+    end
   end
 
   # TODO: allow a SmartEnum to define its own type discriminator attr?
