@@ -93,7 +93,7 @@ class SmartEnum
     end
   end
 
-  def self.register_values(values, enum_type=self, detect_sti_types: false)
+  def self.register_values(values, enum_type=self, wait_for_lock: true, detect_sti_types: false)
     values.each do |raw_attrs|
       _deferred_attr_hashes << raw_attrs.symbolize_keys.merge(enum_type: enum_type, detect_sti_types: detect_sti_types)
     end
@@ -112,6 +112,7 @@ class SmartEnum
         end
       end
       t.abort_on_exception = true
+      t.join if wait_for_lock
     else
       # If we are not handling STI (or our hashes don't actually use the type
       # column) then there is no risk of a circular dependency issue and we are
