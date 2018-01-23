@@ -76,11 +76,6 @@ class SmartEnum
         register_value(**args)
       end
     end
-
-    # Prevent read access during an async call to #lock_enum!
-    private def init_mutex
-      @_init_mutex ||= Mutex.new
-    end
   end
 
   extend Associations
