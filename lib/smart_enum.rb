@@ -104,7 +104,7 @@ class SmartEnum
     # this by locking the enum in a thread after sleeping a short while.
     if detect_sti_types && _deferred_attr_hashes.any?{|h| h[DEFAULT_TYPE_ATTR_SYM] && h[DEFAULT_TYPE_ATTR_SYM] != enum_type_name}
       t = Thread.new do
-        Thread.stop # suspend execution until main thread configures and starts us
+        Thread.current.abort_on_exception = true # ensure errors go to main thread
         init_mutex.synchronize do
           # sleep long enough for the main thread to have finished loading the
           # base class so the autoloader won't raise a circular dep error.
@@ -112,10 +112,10 @@ class SmartEnum
           lock_enum!
         end
       end
-      # we need to set abort_on_exception before the thread executes to ensure
-      # that any exceptions occur on the main thread where we will see them.
-      t.abort_on_exception = true
+      # ensure sleeping thread has a chance to acquire mutex before returning from register_values
+      t.wakeup
       t.run
+      Thread.pass
       t.join if wait_for_lock
     else
       # If we are not handling STI (or our hashes don't actually use the type
