@@ -82,7 +82,7 @@ RSpec.describe SmartEnum do
         model = Class.new(SmartEnum) { attribute :id, Integer }
         expect{
           model.register_values([{id: 99},{id: 88}, {id: 99}])
-          model.all
+          model.values
         }.to raise_error("Already registered id 99!")
       end
 
