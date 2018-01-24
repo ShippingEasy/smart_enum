@@ -82,6 +82,7 @@ RSpec.describe SmartEnum do
         model = Class.new(SmartEnum) { attribute :id, Integer }
         expect{
           model.register_values([{id: 99},{id: 88}, {id: 99}])
+          model.all
         }.to raise_error("Already registered id 99!")
       end
 
@@ -104,7 +105,7 @@ RSpec.describe SmartEnum do
             end
 
             expect{
-              model.register_values([{id: 1, type: 'SomeNonExistentClass'}], detect_sti_types: true)
+              model.register_value(id: 1, type: 'SomeNonExistentClass', detect_sti_types: true)
             }.to raise_error(NameError, "uninitialized constant SomeNonExistentClass")
           end
 
@@ -120,9 +121,7 @@ RSpec.describe SmartEnum do
             end
 
             expect {
-              model.register_values([
-                {id: 1, type: 'SmartEnumTestUnrelatedClass'},
-              ], detect_sti_types: true)
+              model.register_value(id: 1, type: 'SmartEnumTestUnrelatedClass', detect_sti_types: true)
             }.to raise_error(
               /Specified class SmartEnumTestUnrelatedClass must derive from #<Class/
             )

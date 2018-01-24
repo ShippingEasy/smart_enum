@@ -15,7 +15,7 @@ class SmartEnum
       filename = "#{self.name.tableize}.yml"
       file_path = File.join(SmartEnum::YamlStore.data_root, filename)
       values = YAML.load_file(file_path)
-      register_values(values, self, wait_for_lock: false, detect_sti_types: true)
+      register_values(values, self, detect_sti_types: true)
     end
 
     def self.data_root

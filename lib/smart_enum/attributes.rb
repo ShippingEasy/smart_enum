@@ -59,15 +59,8 @@ class SmartEnum
       end
 
       def inspect
-        init_mutex.synchronize do
-          lock_str = @enum_locked ? "LOCKED" : "UNLOCKED"
-          "#{self}(#{lock_str} #{attribute_set.values.map(&:inspect).join(", ")})"
-        end
-      end
-
-      # Prevent read access during an async call to #lock_enum!
-      private def init_mutex
-        @_init_mutex ||= Mutex.new
+        lock_str = @enum_locked ? "LOCKED" : "UNLOCKED"
+        "#{self}(#{lock_str} #{attribute_set.values.map(&:inspect).join(", ")})"
       end
     end
 

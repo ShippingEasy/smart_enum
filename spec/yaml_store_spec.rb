@@ -29,8 +29,8 @@ RSpec.describe SmartEnum::YamlStore do
       expect(Foo.enum_locked?).to be_falsey
 
       Foo.register_values_from_file!
+      Foo.all
       expect(Foo.enum_locked?).to be_truthy
     end
   end
 end
-

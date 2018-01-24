@@ -37,17 +37,13 @@ class SmartEnum
   include SmartEnum::Attributes
 
   def self.[](id)
-    init_mutex.synchronize do
-      raise "Cannot use unlocked enum" unless @enum_locked
-      _enum_storage[id]
-    end
+    ensure_ready_for_reads!
+    _enum_storage[id]
   end
 
   def self.values
-    init_mutex.synchronize do
-      raise "Cannot use unlocked enum" unless @enum_locked
-      _enum_storage.values
-    end
+    ensure_ready_for_reads!
+    _enum_storage.values
   end
 
   def self.enum_locked?
@@ -57,6 +53,24 @@ class SmartEnum
   class << self
     protected def _enum_storage
       @_enum_storage ||= {}
+    end
+
+    protected def ensure_ready_for_reads!
+      return true if enum_locked?
+      # This method must be called on a base class if in an STI heirarachy,
+      # because that is the only place deferred hashes are stored.
+      if superclass != SmartEnum
+        return superclass.ensure_ready_for_reads!
+      end
+      if _deferred_attr_hashes.any?
+        # if we have deferred hashes, instantiate them and lock the enum
+        process_deferred_attr_hashes
+        lock_enum!
+      else
+        # No instance registration has been attempted, need to call
+        # register_values or register_value and lock_enum! first.
+        raise "Cannot use unlocked enum"
+      end
     end
 
     private def _constantize_cache
@@ -82,7 +96,6 @@ class SmartEnum
 
   def self.lock_enum!
     return if @enum_locked
-    process_deferred_attr_hashes
     @enum_locked = true
     @_constantize_cache = nil
     @_descends_from_cache = nil
@@ -93,35 +106,9 @@ class SmartEnum
     end
   end
 
-  def self.register_values(values, enum_type=self, wait_for_lock: true, detect_sti_types: false)
+  def self.register_values(values, enum_type=self, detect_sti_types: false)
     values.each do |raw_attrs|
       _deferred_attr_hashes << raw_attrs.symbolize_keys.merge(enum_type: enum_type, detect_sti_types: detect_sti_types)
-    end
-    enum_type_name = enum_type.name
-    # If we are configured to handle STI and any of our enum values use the
-    # type discriminator column, there is a risk of a circular dependency issue
-    # if a child class is referenced before the base class.  We can sidestep
-    # this by locking the enum in a thread after sleeping a short while.
-    if detect_sti_types && _deferred_attr_hashes.any?{|h| h[DEFAULT_TYPE_ATTR_SYM] && h[DEFAULT_TYPE_ATTR_SYM] != enum_type_name}
-      t = Thread.new do
-        Thread.current.abort_on_exception = true # ensure errors go to main thread
-        init_mutex.synchronize do
-          # sleep long enough for the main thread to have finished loading the
-          # base class so the autoloader won't raise a circular dep error.
-          sleep 0.2
-          lock_enum!
-        end
-      end
-      # ensure sleeping thread has a chance to acquire mutex before returning from register_values
-      t.wakeup
-      t.run
-      Thread.pass
-      t.join if wait_for_lock
-    else
-      # If we are not handling STI (or our hashes don't actually use the type
-      # column) then there is no risk of a circular dependency issue and we are
-      # free to process our hashes and lock the enum storage immediately.
-      lock_enum!
     end
   end
 
