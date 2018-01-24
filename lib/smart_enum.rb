@@ -62,7 +62,7 @@ class SmartEnum
       if superclass != SmartEnum
         return superclass.ensure_ready_for_reads!
       end
-      if _deferred_attr_hashes.any?
+      if @_deferred_values_present
         # if we have deferred hashes, instantiate them and lock the enum
         process_deferred_attr_hashes
         lock_enum!
@@ -110,6 +110,7 @@ class SmartEnum
     values.each do |raw_attrs|
       _deferred_attr_hashes << raw_attrs.symbolize_keys.merge(enum_type: enum_type, detect_sti_types: detect_sti_types)
     end
+    @_deferred_values_present = true
   end
 
   # TODO: allow a SmartEnum to define its own type discriminator attr?
