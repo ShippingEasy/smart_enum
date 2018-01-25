@@ -51,6 +51,8 @@ class SmartEnum
   end
 
   class << self
+    attr_accessor :abstract_class
+
     protected def _enum_storage
       @_enum_storage ||= {}
     end
@@ -128,6 +130,10 @@ class SmartEnum
     unless (_descends_from_cache[klass] ||= (klass <= self))
       raise "Specified class #{klass} must derive from #{self}"
     end
+    if klass.abstract_class
+      raise "#{klass} is marked as abstract and may not be registered"
+    end
+
     instance = klass.new(attrs)
     id = instance.id
     raise "Must provide id" unless id
