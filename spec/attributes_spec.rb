@@ -122,7 +122,7 @@ RSpec.describe SmartEnum::Attributes do
       attribute :bars, Array
     end }
 
-    let(:instance) { model.new(foo: 'a', bars: [1,2]) }
+    let(:instance) { model.new(foo: +'a', bars: [1,2]) }
 
     it 'prevents modification of underlying attributes' do
       expect{instance.foo << 'b'}.not_to raise_error
