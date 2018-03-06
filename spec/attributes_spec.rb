@@ -95,7 +95,8 @@ RSpec.describe SmartEnum::Attributes do
       end
 
       it 'provides boolean alias supporting predicates and nil coercion' do
-        class BooleanModel # Class.new{} syntax can't resolve Boolean constant correctly
+        # Class.new{} syntax can't resolve Boolean constant correctly
+        class BooleanModel
           include SmartEnum::Attributes
           attribute :enabled, Boolean
         end
