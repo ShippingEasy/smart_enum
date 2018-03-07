@@ -25,7 +25,7 @@ RSpec.describe 'monetize' do
     expect {
       model.class_eval {
         attribute :blah_cents, String
-        monetize :blah_cents      
+        monetize :blah_cents
       }
     }.to raise_error(
       "attribute :blah_cents can't monetize, only Integer is allowed"

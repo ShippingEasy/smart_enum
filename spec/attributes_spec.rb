@@ -87,7 +87,7 @@ RSpec.describe SmartEnum::Attributes do
       it 'enforces that coercers emit objects matching type specifiers' do
         model = Class.new do
           include SmartEnum::Attributes
-          attribute :foo, String, coercer: ->(obj) { 100 }
+          attribute :foo, String, coercer: ->(_obj) { 100 }
         end
         expect{model.new(foo: Object.new)}.to raise_error(
           /coercer for foo failed to coerce .* to one of \[String\].  Got 100:Integer instead/
