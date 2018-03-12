@@ -4,7 +4,6 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'smart_enum/version'
 
-require_relative '../../lib/match_shipit_version'
 
 Gem::Specification.new do |spec|
   spec.name          = "smart_enum"
@@ -24,6 +23,6 @@ Gem::Specification.new do |spec|
 
 
   # needed to run test suite for optional features, but consumers don't need it
-  spec.match_shipit_version "activesupport"
-  spec.match_shipit_version "activerecord", development: true
+  spec.add_dependency "activesupport"
+  spec.add_development_dependency "activerecord"
 end
