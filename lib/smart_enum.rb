@@ -4,7 +4,10 @@ require "smart_enum/version"
 require "smart_enum/associations"
 require "smart_enum/attributes"
 
-require "active_support/all" # TODO: only require parts we need
+# For Array#wrap
+require "active_support/core_ext/array/wrap"
+# For Class#descendants
+require "active_support/core_ext/class/subclasses"
 
 # A class used to build in-memory graphs of "lookup" objects that are
 # long-lived and can associate among themselves or ActiveRecord instances.
