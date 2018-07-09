@@ -4,9 +4,6 @@ require "smart_enum/version"
 require "smart_enum/associations"
 require "smart_enum/attributes"
 
-# For Class#descendants
-require "active_support/core_ext/class/subclasses"
-
 # A class used to build in-memory graphs of "lookup" objects that are
 # long-lived and can associate among themselves or ActiveRecord instances.
 #
@@ -84,6 +81,16 @@ class SmartEnum
       @_descends_from_cache ||= {}
     end
 
+    # The descendants of a class.  From activesupport's Class#descendants
+    private def class_descendants(klass)
+      descendants = []
+      ObjectSpace.each_object(klass.singleton_class) do |k|
+        next if k.singleton_class?
+        descendants.unshift k unless k == self
+      end
+      descendants
+    end
+
     private def _deferred_attr_hashes
       @_deferred_attr_hashes ||= []
     end
@@ -104,7 +111,7 @@ class SmartEnum
     @_descends_from_cache = nil
 
     _enum_storage.freeze
-    self.descendants.each do |klass|
+    class_descendants(self).each do |klass|
       klass.lock_enum!
     end
   end

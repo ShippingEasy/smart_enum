@@ -23,6 +23,5 @@ Gem::Specification.new do |spec|
 
 
   # needed to run test suite for optional features, but consumers don't need it
-  spec.add_dependency "activesupport"
   spec.add_development_dependency "activerecord"
 end
