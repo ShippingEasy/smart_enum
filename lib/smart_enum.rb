@@ -4,8 +4,6 @@ require "smart_enum/version"
 require "smart_enum/associations"
 require "smart_enum/attributes"
 
-# For Array#wrap
-require "active_support/core_ext/array/wrap"
 # For Class#descendants
 require "active_support/core_ext/class/subclasses"
 

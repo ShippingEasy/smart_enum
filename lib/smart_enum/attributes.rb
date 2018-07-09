@@ -48,7 +48,14 @@ class SmartEnum
 
       def attribute(name, types, coercer: nil, reader_method: nil)
         name = name.to_sym
-        types = Array.wrap(types)
+        # ensure `types` is an array.  From activesupport's Array#wrap.
+        types = if types.nil?
+          []
+        elsif types.respond_to?(:to_ary)
+          types.to_ary || [types]
+        else
+          [types]
+        end
         attribute_set[name] = Attribute.new(name, types, coercer)
         define_method(reader_method || name) do
           attributes[name]
