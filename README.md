@@ -4,6 +4,8 @@ Create Enum values to replace database lookup tables.
 
 ## Installation
 
+SmartEnum requires ruby 2.4.0 or above.
+
 Add this line to your application's Gemfile:
 
 ```ruby
@@ -36,4 +38,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/Shippi
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

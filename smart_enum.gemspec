@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.files         = Dir["lib/**/*", "Rakefile", "README.md", "LICENSE.txt", "smart_enum.gemspec"]
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.required_ruby_version = '>= 2.4.0'
   spec.require_paths = ["lib"]
 
 
