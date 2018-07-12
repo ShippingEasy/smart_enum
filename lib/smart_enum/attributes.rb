@@ -79,7 +79,7 @@ class SmartEnum
       if block_given?
         fail "Block passed, but it would be ignored"
       end
-      init_opts = opts.symbolize_keys
+      init_opts = ::SmartEnum::Utilities.symbolize_hash_keys(opts)
       if self.class.attribute_set.empty?
         fail "no attributes defined for #{self.class}"
       end
