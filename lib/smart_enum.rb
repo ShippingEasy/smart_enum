@@ -3,6 +3,7 @@
 require "smart_enum/version"
 require "smart_enum/associations"
 require "smart_enum/attributes"
+require "smart_enum/utilities"
 
 # A class used to build in-memory graphs of "lookup" objects that are
 # long-lived and can associate among themselves or ActiveRecord instances.
@@ -118,7 +119,7 @@ class SmartEnum
 
   def self.register_values(values, enum_type=self, detect_sti_types: false)
     values.each do |raw_attrs|
-      _deferred_attr_hashes << raw_attrs.symbolize_keys.merge(enum_type: enum_type, detect_sti_types: detect_sti_types)
+      _deferred_attr_hashes << SmartEnum::Utilities.symbolize_hash_keys(raw_attrs).merge(enum_type: enum_type, detect_sti_types: detect_sti_types)
     end
     @_deferred_values_present = true
   end
