@@ -12,7 +12,7 @@ class SmartEnum
         raise "Cannot infer data file for anonymous class"
       end
 
-      filename = "#{self.name.tableize}.yml"
+      filename = "#{SmartEnum::Utilities.tableize(self.name)}.yml"
       file_path = File.join(SmartEnum::YamlStore.data_root, filename)
       values = YAML.load_file(file_path)
       register_values(values, self, detect_sti_types: true)
