@@ -80,7 +80,7 @@ class SmartEnum
 
       if generate_writer
         define_method("#{association_name}=") do |value|
-          self.public_send(fk_writer_name, value.try(:id))
+          self.public_send(fk_writer_name, value&.id)
         end
       end
     end
