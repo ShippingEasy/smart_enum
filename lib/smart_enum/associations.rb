@@ -108,7 +108,7 @@ class SmartEnum
       end
 
       def foreign_key
-        @foreign_key ||= (foreign_key_option || association_name.to_s.foreign_key).to_sym
+        @foreign_key ||= (foreign_key_option || SmartEnum::Utilities.foreign_key(association_name)).to_sym
       end
 
       def generated_method_name
@@ -128,7 +128,7 @@ class SmartEnum
           begin
             return foreign_key_option.to_sym if foreign_key_option
             if owner_class.name
-              owner_class.name.foreign_key.to_sym
+              SmartEnum::Utilities.foreign_key(owner_class.name).to_sym
             else
               raise "You must specify the foreign_key option when using a 'has_*' association on an anoymous class"
             end

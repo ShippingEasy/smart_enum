@@ -10,5 +10,13 @@ class SmartEnum
       end
       symbolized_hash
     end
+
+    def self.foreign_key(string)
+      singularize(string) + "_id"
+    end
+
+    def self.singularize(string)
+      string.to_s.chomp("s")
+    end
   end
 end
