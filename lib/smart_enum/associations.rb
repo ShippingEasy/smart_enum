@@ -40,7 +40,10 @@ class SmartEnum
       enum_associations[association_name] = association
 
       define_method(association_name) do
-        public_send(association.through_association).try(association.association_method)
+        intermediate = public_send(association.through_association)
+        if intermediate
+          intermediate.public_send(association.association_method)
+        end
       end
     end
 
