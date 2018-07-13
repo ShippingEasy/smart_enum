@@ -23,6 +23,18 @@ class SmartEnum
       underscore(string) + "s"
     end
 
+    def self.classify(string)
+      singularize(camelize(string))
+    end
+
+    # Convert snake case string to camelcase string.
+    # Adapted from https://github.com/jeremyevans/sequel/blob/5.10.0/lib/sequel/model/inflections.rb#L103
+    def self.camelize(string)
+      string.to_s
+        .gsub(/\/(.?)/){|x| "::#{x[-1..-1].upcase unless x == '/'}"}
+        .gsub(/(^|_)(.)/){|x| x[-1..-1].upcase}
+    end
+
     # Adapted from
     # https://github.com/jeremyevans/sequel/blob/5.10.0/lib/sequel/model/inflections.rb#L147-L148
     def self.underscore(string)

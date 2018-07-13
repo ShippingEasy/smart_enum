@@ -104,7 +104,7 @@ class SmartEnum
       end
 
       def class_name
-        @class_name ||= (class_name_option || association_name.to_s.classify).to_s
+        @class_name ||= (class_name_option || SmartEnum::Utilities.classify(association_name)).to_s
       end
 
       def foreign_key
