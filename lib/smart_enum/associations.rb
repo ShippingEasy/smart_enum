@@ -116,7 +116,7 @@ class SmartEnum
       end
 
       def association_class
-        @association_class ||= class_name.constantize.tap{|klass|
+        @association_class ||= SmartEnum::Utilities.constantize(class_name).tap{|klass|
           ::SmartEnum::Associations.__assert_enum(klass)
         }
       end
