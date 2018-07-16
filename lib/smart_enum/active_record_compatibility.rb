@@ -115,7 +115,7 @@ class SmartEnum
       #   find_by(id: '1', key: :blah)
       # even when types differ like we can in ActiveRecord.
       def cast_query_attrs(raw_attrs)
-        raw_attrs.symbolize_keys.each_with_object({}) do |(k, v), new_attrs|
+        SmartEnum::Utilities.symbolize_hash_keys(raw_attrs).each_with_object({}) do |(k, v), new_attrs|
           if v.instance_of?(Array)
             fail "SmartEnum can't query with array arguments yet.  Got #{raw_attrs.inspect}"
           end
