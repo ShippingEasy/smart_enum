@@ -132,7 +132,7 @@ class SmartEnum
     fail EnumLocked.new(enum_type) if enum_locked?
     type_attr_val = attrs[DEFAULT_TYPE_ATTR_STR] || attrs[DEFAULT_TYPE_ATTR_SYM]
     klass = if type_attr_val && detect_sti_types
-              _constantize_cache[type_attr_val] ||= type_attr_val.constantize
+              _constantize_cache[type_attr_val] ||= SmartEnum::Utilities.constantize(type_attr_val)
             else
               enum_type
             end

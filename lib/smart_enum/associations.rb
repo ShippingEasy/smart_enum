@@ -40,7 +40,10 @@ class SmartEnum
       enum_associations[association_name] = association
 
       define_method(association_name) do
-        public_send(association.through_association).try(association.association_method)
+        intermediate = public_send(association.through_association)
+        if intermediate
+          intermediate.public_send(association.association_method)
+        end
       end
     end
 
@@ -77,7 +80,7 @@ class SmartEnum
 
       if generate_writer
         define_method("#{association_name}=") do |value|
-          self.public_send(fk_writer_name, value.try(:id))
+          self.public_send(fk_writer_name, value&.id)
         end
       end
     end
@@ -104,11 +107,11 @@ class SmartEnum
       end
 
       def class_name
-        @class_name ||= (class_name_option || association_name.to_s.classify).to_s
+        @class_name ||= (class_name_option || SmartEnum::Utilities.classify(association_name)).to_s
       end
 
       def foreign_key
-        @foreign_key ||= (foreign_key_option || association_name.to_s.foreign_key).to_sym
+        @foreign_key ||= (foreign_key_option || SmartEnum::Utilities.foreign_key(association_name)).to_sym
       end
 
       def generated_method_name
@@ -116,7 +119,7 @@ class SmartEnum
       end
 
       def association_class
-        @association_class ||= class_name.constantize.tap{|klass|
+        @association_class ||= SmartEnum::Utilities.constantize(class_name).tap{|klass|
           ::SmartEnum::Associations.__assert_enum(klass)
         }
       end
@@ -128,7 +131,7 @@ class SmartEnum
           begin
             return foreign_key_option.to_sym if foreign_key_option
             if owner_class.name
-              owner_class.name.foreign_key.to_sym
+              SmartEnum::Utilities.foreign_key(owner_class.name).to_sym
             else
               raise "You must specify the foreign_key option when using a 'has_*' association on an anoymous class"
             end
