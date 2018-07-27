@@ -99,6 +99,39 @@ RSpec.describe SmartEnum::ActiveRecordCompatibility do
         end
       end
 
+      describe 'first' do
+        it 'finds the first attribute' do
+          result = model.first
+          expect(result.name).to eq "A"
+        end
+
+        it 'can grab the first N elements' do
+          results = model.first(2)
+          expect(results.first.name).to eq "A"
+          expect(results.last.name).to eq "B"
+        end
+      end
+
+      describe 'last' do
+        it 'finds the last attribute' do
+          result = model.last
+          expect(result.name).to eq "C"
+        end
+
+        it 'can grab the last N elements' do
+          results = model.last(2)
+          expect(results.first.name).to eq "B"
+          expect(results.last.name).to eq "C"
+        end
+      end
+
+      describe 'count' do
+        it 'returns the count of objects' do
+          count = model.count
+          expect(count).to eq(3)
+        end
+      end
+
       describe 'find' do
         it 'finds using PK only' do
           result = model.find(1)

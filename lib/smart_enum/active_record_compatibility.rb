@@ -105,6 +105,26 @@ class SmartEnum
         values
       end
 
+      def first(num=nil)
+        if num
+          values.first(num)
+        else
+          values.first
+        end
+      end
+
+      def last(num=nil)
+        if num
+          values.last(num)
+        else
+          values.last
+        end
+      end
+
+      def count
+        values.count
+      end
+
       STRING = [String].freeze
       SYMBOL = [Symbol].freeze
       BOOLEAN = [TrueClass, FalseClass].freeze
