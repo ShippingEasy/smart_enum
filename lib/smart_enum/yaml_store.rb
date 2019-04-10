@@ -4,6 +4,12 @@ require 'yaml'
 # Methods for registering values from YAML files
 class SmartEnum
   module YamlStore
+    # Loads values from a YAML file or files
+    #
+    # Looks for a file or directory named after the enum type in the data root.
+    # If a directory is found, values from all of the YAML files in that directory
+    # are loaded.
+    # Otherwise, values are loaded from the file named after the enum.
     def register_values_from_file!
       unless SmartEnum::YamlStore.data_root
         raise "Must set SmartEnum::YamlStore.data_root before using `register_values_from_file!`"
@@ -12,10 +18,17 @@ class SmartEnum
         raise "Cannot infer data file for anonymous class"
       end
 
-      filename = "#{SmartEnum::Utilities.tableize(self.name)}.yml"
-      file_path = File.join(SmartEnum::YamlStore.data_root, filename)
-      values = YAML.load_file(file_path)
-      register_values(values, self, detect_sti_types: true)
+      basename = SmartEnum::Utilities.tableize(self.name)
+      dirname = File.join(SmartEnum::YamlStore.data_root, basename)
+      files = if Dir.exists?(dirname)
+                Dir[File.join(dirname, "*.yml")]
+              else
+                [File.join(SmartEnum::YamlStore.data_root, "#{basename}.yml")]
+              end
+      files.each do |file_path|
+        values = YAML.load_file(file_path)
+        register_values(values, self, detect_sti_types: true)
+      end
     end
 
     def self.data_root
