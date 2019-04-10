@@ -20,10 +20,14 @@ class SmartEnum
 
       basename = SmartEnum::Utilities.tableize(self.name)
       dirname = File.join(SmartEnum::YamlStore.data_root, basename)
+      inferred_file = File.join(SmartEnum::YamlStore.data_root, "#{basename}.yml")
       files = if Dir.exists?(dirname)
+                if File.exists?(inferred_file)
+                  raise AmbiguousSource, "#{self} values should be defined in inferred file or directory, not both"
+                end
                 Dir[File.join(dirname, "*.yml")]
               else
-                [File.join(SmartEnum::YamlStore.data_root, "#{basename}.yml")]
+                [inferred_file]
               end
       files.each do |file_path|
         values = YAML.load_file(file_path)
@@ -38,6 +42,8 @@ class SmartEnum
     def self.data_root=(val)
       @data_root = val
     end
+
+    class AmbiguousSource < RuntimeError; end
   end
 
   # automatically enable YAML store when this file is loaded
