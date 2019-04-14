@@ -70,7 +70,7 @@ class SmartEnum
       else
         # No instance registration has been attempted, need to call
         # register_values or register_value and lock_enum! first.
-        raise "Cannot use unlocked enum"
+        raise EnumUnlocked, self
       end
     end
 
@@ -137,16 +137,20 @@ class SmartEnum
               enum_type
             end
     unless (_descends_from_cache[klass] ||= (klass <= self))
-      raise "Specified class #{klass} must derive from #{self}"
+      raise RegistrationError.new("Specified class must derive from #{self}", type: klass, attributes: attrs)
     end
     if klass.abstract_class
-      raise "#{klass} is marked as abstract and may not be registered"
+      raise RegistrationError, "#{klass} is marked as abstract and may not be registered"
     end
 
     instance = klass.new(attrs)
     id = instance.id
-    raise "Must provide id" unless id
-    raise "Already registered id #{id}!" if _enum_storage.has_key?(id)
+    unless id
+      raise MissingIDError.new(type: klass, attributes: attrs)
+    end
+    if _enum_storage.has_key?(id)
+      raise DuplicateIDError.new(type: klass, attributes: attrs, id: id, existing: _enum_storage[id])
+    end
     instance.freeze_attributes
     _enum_storage[id] = instance
     if klass != self
@@ -155,8 +159,44 @@ class SmartEnum
   end
 
   class EnumLocked < StandardError
+    attr_reader :type
+
     def initialize(klass)
+      @type = klass
       super("#{klass} has been locked and can not be written to")
+    end
+  end
+
+  class EnumUnlocked < StandardError
+    attr_reader :type
+
+    def initialize(klass)
+      @type = klass
+      super("Cannot use unlocked enum #{klass}.")
+    end
+  end
+
+  class RegistrationError < StandardError
+    attr_reader :type, :attributes
+
+    def initialize(info=nil, type: nil, attributes:{})
+      @info = info
+      @type = type
+      @attributes = attributes
+      super("Failed to register enum #{@type} with attributes: #{@attributes}. #{@info}")
+    end
+  end
+
+  class MissingIDError < RegistrationError
+  end
+
+  class DuplicateIDError < RegistrationError
+    attr_reader :id, :existing
+
+    def initialize(type:,id:,attributes:,existing:)
+      @id = id
+      @existing = existing
+      super("The ID #{@id} has already been registered with #{existing}", type: type, attributes: attributes)
     end
   end
 end

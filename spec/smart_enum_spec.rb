@@ -15,17 +15,17 @@ RSpec.describe SmartEnum do
       end
 
       it 'requires an :id key to build the primary index' do
-        model = Class.new(SmartEnum) do
+        stub_const("Model", Class.new(SmartEnum) do
           attribute :id, Integer
           attribute :name, String
-        end
-        expect{model.register_value(name: "Blah")}.to raise_error('Must provide id')
+        end)
+        expect{Model.register_value(name: "Blah")}.to raise_error(SmartEnum::MissingIDError, /Model/)
       end
 
       it 'fails for duplicate values' do
-        model = Class.new(SmartEnum) { attribute :id, Integer }
-        expect{model.register_value(id: 1)}.not_to raise_error
-        expect{model.register_value(id: 1)}.to raise_error(/Already registered id 1!/)
+        stub_const("Model", Class.new(SmartEnum) { attribute :id, Integer })
+        expect{Model.register_value(id: 1)}.not_to raise_error
+        expect{Model.register_value(id: 1)}.to raise_error(SmartEnum::DuplicateIDError, /ID 1/)
       end
 
       describe 'descendant class registration' do
@@ -42,10 +42,12 @@ RSpec.describe SmartEnum do
 
         it 'prevents registering enum_types that are not ancestors' do
           expect{child1.register_value(id: 2, enum_type: parent)}.to raise_error(
-            /Specified class .* must derive from .*/
+            SmartEnum::RegistrationError,
+            /Specified class/ #/Specified class .* must derive from .*/
           )
           expect{child2.register_value(id: 2, enum_type: child1)}.to raise_error(
-            /Specified class .* must derive from .*/
+            SmartEnum::RegistrationError,
+            /Specified class/ # .* must derive from .*/
           )
         end
 
@@ -83,7 +85,7 @@ RSpec.describe SmartEnum do
         expect{
           model.register_values([{id: 99},{id: 88}, {id: 99}])
           model.values
-        }.to raise_error("Already registered id 99!")
+        }.to raise_error(SmartEnum::DuplicateIDError)
       end
 
       context 'type inference' do
@@ -123,7 +125,8 @@ RSpec.describe SmartEnum do
             expect {
               model.register_value(id: 1, type: 'SmartEnumTestUnrelatedClass', detect_sti_types: true)
             }.to raise_error(
-              /Specified class SmartEnumTestUnrelatedClass must derive from #<Class/
+              SmartEnum::RegistrationError,
+              /Specified class/ # SmartEnumTestUnrelatedClass must derive from #<Class/
             )
           end
 
@@ -202,9 +205,9 @@ RSpec.describe SmartEnum do
     end
 
     it 'fails when model is not locked' do
-      model = Class.new(SmartEnum) { attribute :id, Integer }
-      expect{model[1]}.to raise_error("Cannot use unlocked enum")
-      expect{model.values}.to raise_error("Cannot use unlocked enum")
+      stub_const("Foo", Class.new(SmartEnum) { attribute :id, Integer })
+      expect{Foo[1]}.to raise_error(SmartEnum::EnumUnlocked, /Foo/)
+      expect{Foo.values}.to raise_error(SmartEnum::EnumUnlocked, /Foo/)
     end
 
     it 'can access value by id' do
