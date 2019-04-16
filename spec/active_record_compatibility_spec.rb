@@ -51,10 +51,10 @@ RSpec.describe SmartEnum::ActiveRecordCompatibility do
   context 'querying' do
     it 'fails when model is not locked' do
       model = Class.new(SmartEnum) { attribute :id, Integer }
-      expect{model.find(1)}.to raise_error("Cannot use unlocked enum")
-      expect{model.find_by(id: 1)}.to raise_error("Cannot use unlocked enum")
-      expect{model.find_by!(id: 1)}.to raise_error("Cannot use unlocked enum")
-      expect{model.where(id: 1)}.to raise_error("Cannot use unlocked enum")
+      expect{model.find(1)}.to raise_error(SmartEnum::EnumUnlocked)
+      expect{model.find_by(id: 1)}.to raise_error(SmartEnum::EnumUnlocked)
+      expect{model.find_by!(id: 1)}.to raise_error(SmartEnum::EnumUnlocked)
+      expect{model.where(id: 1)}.to raise_error(SmartEnum::EnumUnlocked)
     end
 
     context 'when locked and populated' do
