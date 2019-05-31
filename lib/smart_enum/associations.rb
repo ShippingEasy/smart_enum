@@ -57,13 +57,13 @@ class SmartEnum
       end
     end
 
-    def belongs_to_enum(association_name, class_name: nil, foreign_key: nil)
+    def belongs_to_enum(association_name, class_name: nil, foreign_key: nil, when_nil: nil)
       association_name = association_name.to_sym
       association = Association.new(self, association_name, class_name: class_name, foreign_key: foreign_key)
       enum_associations[association_name] = association
 
       define_method(association_name) do
-        id_to_find = self.public_send(association.foreign_key)
+        id_to_find = self.public_send(association.foreign_key) || when_nil
         association.association_class[id_to_find]
       end
 

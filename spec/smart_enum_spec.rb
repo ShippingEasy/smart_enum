@@ -235,32 +235,58 @@ RSpec.describe SmartEnum do
 
     describe 'belongs_to_enum' do
       describe 'generated reader method' do
-        before do
-          Foo.attribute :bar_id, Integer
-          Foo.belongs_to_enum "bar"
+        context "without a when_nil option" do
+          before do
+            Foo.attribute :bar_id, Integer
+            Foo.belongs_to_enum "bar"
+          end
+
+          it 'locates associated instances' do
+            Bar.register_values([{id:11}, {id: 22}])
+            Foo.register_values([{id:1, bar_id: 11}])
+            foo = Foo[1]
+            bar = foo.bar
+            expect(bar).to be_a(Bar)
+            expect(bar).to eq(Bar[11])
+          end
+
+          it 'ignores nil association ids' do
+            Bar.register_values([{id:11}, {id: 22}])
+            Foo.register_values([{id:1, bar_id: nil}])
+            foo = Foo[1]
+            expect(foo.bar).to eq(nil)
+          end
+
+          it 'ignores nonexistent association ids' do
+            Bar.register_values([{id:11}, {id: 22}])
+            Foo.register_values([{id:1, bar_id: 33}])
+            foo = Foo[1]
+            expect(foo.bar).to eq(nil)
+          end
         end
 
-        it 'locates associated instances' do
-          Bar.register_values([{id:11}, {id: 22}])
-          Foo.register_values([{id:1, bar_id: 11}])
-          foo = Foo[1]
-          bar = foo.bar
-          expect(bar).to be_a(Bar)
-          expect(bar).to eq(Bar[11])
-        end
+        context "with a when_nil option" do
+          before do
+            Foo.attribute :bar_id, Integer
+            Foo.belongs_to_enum "bar", when_nil: 22
+          end
 
-        it 'ignores nil association ids' do
-          Bar.register_values([{id:11}, {id: 22}])
-          Foo.register_values([{id:1, bar_id: nil}])
-          foo = Foo[1]
-          expect(foo.bar).to eq(nil)
-        end
-
-        it 'ignores nonexistent association ids' do
-          Bar.register_values([{id:11}, {id: 22}])
-          Foo.register_values([{id:1, bar_id: 33}])
-          foo = Foo[1]
-          expect(foo.bar).to eq(nil)
+          context "when an association id is available" do
+            it 'locates instance for the association id' do
+              Bar.register_values([{id:11}, {id: 22}])
+              Foo.register_values([{id:1, bar_id: 11}])
+              foo = Foo[1]
+              expect(foo.bar).to eq(Bar[11])
+            end
+          end
+          context "when an association id is not available" do
+            it 'locates instance for the when_nil' do
+              Bar.register_values([{id:11}, {id: 22}])
+              Foo.register_values([{id:1, bar_id: nil}])
+              foo = Foo[1]
+              expect(foo.bar).to eq(Bar[22])
+            end
+          end
         end
       end
 
