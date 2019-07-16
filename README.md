@@ -233,7 +233,7 @@ Vehicle.all.map {|v| [v.display_name, v.requires_commercial_license?]}
 ### Validating data in SmartEnum
 
 Currently there is no built in way to validate the data in SmartEnum.
-The pattern that we suggest is to add a small spec to your CI process to
+The pattern that we suggest is to add an automated test to
 validate that the data in SmartEnum models matches what the business logic
 requires.
 
