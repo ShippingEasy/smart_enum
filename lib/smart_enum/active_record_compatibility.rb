@@ -64,19 +64,36 @@ class SmartEnum
 
     # Simulate ActiveRecord Query API
     module QueryMethods
+      module EnumerableOverrides
+        def find(id, raise_on_missing: true)
+          self[cast_primary_key(id)].tap do |result|
+            if !result && raise_on_missing
+              fail ActiveRecord::RecordNotFound.new("Couldn't find #{self} with 'id'=#{id}")
+            end
+          end
+        end
+
+      end
+
+      extend Enumerable
+      extend EnumerableOverrides
+
+      def self.extended(base)
+        base.send :extend, Enumerable
+        base.send :extend, EnumerableOverrides
+      end
+
+      def each(&block)
+        all.each do |value|
+          block.call(value)
+        end
+      end
+
       def where(uncast_attrs)
         attrs = cast_query_attrs(uncast_attrs)
         all.select do |instance|
           instance.attributes.slice(*attrs.keys) == attrs
         end.tap(&:freeze)
-      end
-
-      def find(id, raise_on_missing: true)
-        self[cast_primary_key(id)].tap do |result|
-          if !result && raise_on_missing
-            fail ActiveRecord::RecordNotFound.new("Couldn't find #{self} with 'id'=#{id}")
-          end
-        end
       end
 
       def find_by(uncast_attrs)
@@ -105,24 +122,12 @@ class SmartEnum
         values
       end
 
-      def first(num=nil)
-        if num
-          values.first(num)
-        else
-          values.first
-        end
-      end
-
       def last(num=nil)
         if num
           values.last(num)
         else
           values.last
         end
-      end
-
-      def count
-        values.count
       end
 
       STRING = [String].freeze
